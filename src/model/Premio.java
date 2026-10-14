@@ -8,6 +8,8 @@ public class Premio {
     private int puntosRequeridos;
     private int existencia;
     private boolean activo;
+    private int idProducto;
+    private int idMenu;
 
     public Premio() {
         this.puntosRequeridos = 0;
@@ -72,5 +74,26 @@ public class Premio {
 
     public void setActivo(boolean activo) {
         this.activo = activo;
+    }
+
+    public int getIdProducto() {
+        return idProducto;
+    }
+
+    public void setIdProducto(int idProducto) {
+        this.idProducto = idProducto;
+    }
+
+    public int getIdMenu() {
+        return idMenu;
+    }
+
+    public void setIdMenu(int idMenu) {
+        this.idMenu = idMenu;
+    }
+
+    @Override
+    public String toString() {
+        return nombre + " — " + puntosRequeridos + " puntos (stock: " + existencia + ")";
     }
 }

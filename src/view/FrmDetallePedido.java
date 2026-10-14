@@ -7,16 +7,26 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
+import controller.DetallePedidoMenuController;
+import controller.MenuController;
+import model.DetallePedidoMenu;
+import model.Menu;
+
 
 public class FrmDetallePedido extends JFrame {
 
     private final DetallePedidoController controller =
             new DetallePedidoController();
+    private final DetallePedidoMenuController controllerMenu =
+        new DetallePedidoMenuController();
+    private final MenuController menuController = new MenuController();
 
     private JTextField txtIdPedido;
     private JTextField txtIdProducto;
     private JTextField txtCantidad;
     private JTextField txtPrecio;
+    private JComboBox<Menu> cboMenus;
+    private JTextField txtCantidadMenu;
     private JTable tblDetalles;
     private DefaultTableModel modelo;
 
@@ -27,6 +37,7 @@ public class FrmDetallePedido extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         inicializarComponentes();
+        cargarMenus();
     }
 
     private void inicializarComponentes() {
@@ -56,8 +67,24 @@ public class FrmDetallePedido extends JFrame {
         formulario.add(txtCantidad);
         formulario.add(txtPrecio);
 
+        JPanel formularioMenu = new JPanel(new GridLayout(2, 2, 10, 8));
+        formularioMenu.setBorder(BorderFactory.createTitledBorder("Agregar menú"));
+
+        formularioMenu.add(new JLabel("Menú disponible:"));
+        formularioMenu.add(new JLabel("Cantidad:"));
+
+        cboMenus = new JComboBox<>();
+        txtCantidadMenu = new JTextField();
+
+        formularioMenu.add(cboMenus);
+        formularioMenu.add(txtCantidadMenu);
+
+        JPanel formularios = new JPanel(new GridLayout(2, 1, 10, 10));
+        formularios.add(formulario);
+        formularios.add(formularioMenu);
+
         modelo = new DefaultTableModel(
-                new Object[]{"ID Detalle", "ID Pedido", "ID Producto",
+                new Object[]{"ID Detalle", "ID Pedido", "Producto / Menú",
                     "Cantidad", "Precio unitario", "Subtotal"}, 0) {
             @Override
             public boolean isCellEditable(int fila, int columna) {
@@ -69,19 +96,21 @@ public class FrmDetallePedido extends JFrame {
 
         JPanel centro = new JPanel(new BorderLayout(10, 10));
         centro.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
-        centro.add(formulario, BorderLayout.NORTH);
+        centro.add(formularios, BorderLayout.NORTH);
         centro.add(new JScrollPane(tblDetalles), BorderLayout.CENTER);
 
         add(centro, BorderLayout.CENTER);
 
         JButton btnCargar = new JButton("Consultar pedido");
         JButton btnGuardar = new JButton("Agregar producto");
+        JButton btnAgregarMenu = new JButton("Agregar menú");
         JButton btnLimpiar = new JButton("Limpiar");
 
         JPanel botones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         botones.add(btnCargar);
         botones.add(btnGuardar);
         botones.add(btnLimpiar);
+        botones.add(btnAgregarMenu);
 
         botones.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
         add(botones, BorderLayout.SOUTH);
@@ -89,6 +118,14 @@ public class FrmDetallePedido extends JFrame {
         btnCargar.addActionListener(e -> cargarDetalles());
         btnGuardar.addActionListener(e -> guardarDetalle());
         btnLimpiar.addActionListener(e -> limpiarCampos());
+        btnAgregarMenu.addActionListener(e -> guardarMenu());
+    }
+
+    private void cargarMenus() {
+        cboMenus.removeAllItems();
+        for (Menu menu : menuController.listarActivos()) {
+            cboMenus.addItem(menu);
+        }
     }
 
     private void cargarDetalles() {
@@ -113,9 +150,24 @@ public class FrmDetallePedido extends JFrame {
                     subtotal
                 });
             }
+            List<DetallePedidoMenu> menus =
+        controllerMenu.listarPorPedido(idPedido);
+
+            for (DetallePedidoMenu menu : menus) {
+                double subtotal = menu.getCantidad() * menu.getPrecioUnitario();
+
+                modelo.addRow(new Object[]{
+                    menu.getIdDetallePedidoMenu(),
+                    menu.getIdPedido(),
+                    "MENÚ " + menu.getIdMenu(),
+                    menu.getCantidad(),
+                    menu.getPrecioUnitario(),
+                    subtotal
+                });
+            }
 
             JOptionPane.showMessageDialog(this,
-                    "Detalles consultados: " + detalles.size());
+                "Detalles consultados: " + (detalles.size() + menus.size()));
 
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this,
@@ -154,6 +206,38 @@ public class FrmDetallePedido extends JFrame {
                     "Verifica que todos los campos numéricos sean válidos.");
         }
     }
+    private void guardarMenu() {
+    try {
+        int idPedido = Integer.parseInt(txtIdPedido.getText().trim());
+        int cantidad = Integer.parseInt(txtCantidadMenu.getText().trim());
+        Menu menu = (Menu) cboMenus.getSelectedItem();
+        if (menu == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No hay menús activos disponibles.");
+            return;
+        }
+
+        DetallePedidoMenu detalle = new DetallePedidoMenu(
+                0, idPedido, menu.getIdMenu(), cantidad, 0
+        );
+
+        if (controllerMenu.guardar(detalle)) {
+            JOptionPane.showMessageDialog(this,
+                    "Menú agregado y total actualizado.");
+            txtCantidadMenu.setText("");
+            cargarDetalles();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo agregar. Verifica el pedido, el menú "
+                    + "y las existencias de sus componentes.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this,
+                "Ingresa números válidos para pedido, menú y cantidad.");
+    }
+}
 
     private void limpiarCampos() {
         txtIdPedido.setText("");
@@ -161,6 +245,10 @@ public class FrmDetallePedido extends JFrame {
         txtCantidad.setText("");
         txtPrecio.setText("");
         modelo.setRowCount(0);
+        if (cboMenus.getItemCount() > 0) {
+            cboMenus.setSelectedIndex(0);
+        }
+        txtCantidadMenu.setText("");
     }
 
     public static void main(String[] args) {

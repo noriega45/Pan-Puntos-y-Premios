@@ -81,6 +81,16 @@ public class DetalleAbastecimientoDAO {
                     }
                 }
 
+                try (PreparedStatement ps = cn.prepareStatement(
+                        "INSERT INTO MOVIMIENTOS_INVENTARIO "
+                        + "(ID_MOVIMIENTO, ID_PRODUCTO, TIPO, CANTIDAD, REFERENCIA) "
+                        + "VALUES (SEQ_MOVIMIENTOS_INVENTARIO.NEXTVAL, ?, 'ABASTECIMIENTO', ?, ?)")) {
+                    ps.setInt(1, detalle.getIdProducto());
+                    ps.setInt(2, detalle.getCantidad());
+                    ps.setString(3, "Abastecimiento #" + detalle.getIdAbastecimiento());
+                    ps.executeUpdate();
+                }
+
                 // 4. Recalcular el total del abastecimiento.
                 try (PreparedStatement ps = cn.prepareStatement(sqlTotal)) {
                     ps.setInt(1, detalle.getIdAbastecimiento());

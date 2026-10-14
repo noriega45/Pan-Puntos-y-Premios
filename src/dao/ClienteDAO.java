@@ -13,16 +13,15 @@ public class ClienteDAO {
     public boolean guardar(Cliente cliente) {
 
         String sql = "INSERT INTO CLIENTES "
-                + "(ID_CLIENTE, NOMBRE, NIT, TELEFONO, CORREO) "
-                + "VALUES (SEQ_CLIENTES.NEXTVAL, ?, ?, ?, ?)";
+                + "(ID_CLIENTE, NOMBRE, TELEFONO, CORREO) "
+                + "VALUES (SEQ_CLIENTES.NEXTVAL, ?, ?, ?)";
 
         try (Connection cn = Conexion.conectar();
              PreparedStatement ps = cn.prepareStatement(sql)) {
 
             ps.setString(1, cliente.getNombre());
-            ps.setString(2, cliente.getNit());
-            ps.setString(3, cliente.getTelefono());
-            ps.setString(4, cliente.getCorreo());
+            ps.setString(2, cliente.getTelefono());
+            ps.setString(3, cliente.getCorreo());
 
             return ps.executeUpdate() > 0;
 
@@ -35,7 +34,7 @@ public class ClienteDAO {
 
     List<Cliente> clientes = new ArrayList<>();
 
-    String sql = "SELECT ID_CLIENTE, NOMBRE, NIT, TELEFONO, CORREO "
+    String sql = "SELECT ID_CLIENTE, NOMBRE, TELEFONO, CORREO, PUNTOS "
                + "FROM CLIENTES "
                + "WHERE ACTIVO = 1 "
                + "ORDER BY ID_CLIENTE";
@@ -49,10 +48,11 @@ public class ClienteDAO {
             Cliente cliente = new Cliente(
                     rs.getInt("ID_CLIENTE"),
                     rs.getString("NOMBRE"),
-                    rs.getString("NIT"),
+                    null,
                     rs.getString("TELEFONO"),
                     rs.getString("CORREO")
             );
+            cliente.setPuntos(rs.getInt("PUNTOS"));
 
             clientes.add(cliente);
         }
@@ -63,20 +63,78 @@ public class ClienteDAO {
 
     return clientes;
 }
+
+public Cliente buscarPorId(int idCliente) {
+    String sql = "SELECT ID_CLIENTE, NOMBRE, TELEFONO, CORREO, PUNTOS "
+            + "FROM CLIENTES WHERE ID_CLIENTE = ? AND ACTIVO = 1";
+    try (Connection cn = Conexion.conectar();
+         PreparedStatement ps = cn.prepareStatement(sql)) {
+        ps.setInt(1, idCliente);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                Cliente cliente = new Cliente(rs.getInt("ID_CLIENTE"),
+                        rs.getString("NOMBRE"), null,
+                        rs.getString("TELEFONO"), rs.getString("CORREO"));
+                cliente.setPuntos(rs.getInt("PUNTOS"));
+                return cliente;
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Error al buscar cliente: " + e.getMessage());
+    }
+    return null;
+}
+
+public List<Object[]> listarPedidosCliente(int idCliente) {
+    List<Object[]> filas = new ArrayList<>();
+    String sql = "SELECT ID_PEDIDO, FECHA, TOTAL, ESTADO FROM PEDIDOS "
+            + "WHERE ID_CLIENTE = ? ORDER BY FECHA DESC, ID_PEDIDO DESC";
+    try (Connection cn = Conexion.conectar();
+         PreparedStatement ps = cn.prepareStatement(sql)) {
+        ps.setInt(1, idCliente);
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                filas.add(new Object[]{rs.getInt("ID_PEDIDO"), rs.getDate("FECHA"),
+                    rs.getDouble("TOTAL"), rs.getString("ESTADO")});
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Error al listar pedidos del cliente: " + e.getMessage());
+    }
+    return filas;
+}
+
+public List<Object[]> listarMovimientosPuntos(int idCliente) {
+    List<Object[]> filas = new ArrayList<>();
+    String sql = "SELECT FECHA, TIPO, PUNTOS, DESCRIPCION FROM MOVIMIENTOS_PUNTOS "
+            + "WHERE ID_CLIENTE = ? ORDER BY FECHA DESC, ID_MOVIMIENTO DESC";
+    try (Connection cn = Conexion.conectar();
+         PreparedStatement ps = cn.prepareStatement(sql)) {
+        ps.setInt(1, idCliente);
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                filas.add(new Object[]{rs.getTimestamp("FECHA"), rs.getString("TIPO"),
+                    rs.getInt("PUNTOS"), rs.getString("DESCRIPCION")});
+            }
+        }
+    } catch (Exception e) {
+        System.out.println("Error al listar movimientos de puntos: " + e.getMessage());
+    }
+    return filas;
+}
     public boolean actualizar(Cliente cliente) {
 
     String sql = "UPDATE CLIENTES "
-               + "SET NOMBRE = ?, NIT = ?, TELEFONO = ?, CORREO = ? "
+               + "SET NOMBRE = ?, TELEFONO = ?, CORREO = ? "
                + "WHERE ID_CLIENTE = ?";
 
     try (Connection cn = Conexion.conectar();
          PreparedStatement ps = cn.prepareStatement(sql)) {
 
         ps.setString(1, cliente.getNombre());
-        ps.setString(2, cliente.getNit());
-        ps.setString(3, cliente.getTelefono());
-        ps.setString(4, cliente.getCorreo());
-        ps.setInt(5, cliente.getIdCliente());
+        ps.setString(2, cliente.getTelefono());
+        ps.setString(3, cliente.getCorreo());
+        ps.setInt(4, cliente.getIdCliente());
 
         return ps.executeUpdate() > 0;
 
@@ -122,5 +180,32 @@ public class ClienteDAO {
         return false;
     }
 }
-    
+
+public boolean actualizarPuntos(int idCliente, int puntos) {
+
+    if (idCliente <= 0) {
+        return false;
+    }
+
+    String sql = "UPDATE CLIENTES "
+               + "SET PUNTOS = PUNTOS + ? "
+               + "WHERE ID_CLIENTE = ? AND ACTIVO = 1";
+
+    try (Connection cn = Conexion.conectar();
+         PreparedStatement ps = cn.prepareStatement(sql)) {
+
+        ps.setInt(1, puntos);
+        ps.setInt(2, idCliente);
+
+        return ps.executeUpdate() > 0;
+
+    } catch (Exception e) {
+        System.out.println(
+            "Error al actualizar puntos del cliente: " + e.getMessage()
+        );
+        return false;
+    }
+}
+
+
 }

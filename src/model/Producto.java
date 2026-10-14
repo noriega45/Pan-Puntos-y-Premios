@@ -87,5 +87,11 @@ public Producto(int idProducto, String codigo, String categoria, String nombre, 
     this.existencia = existencia;
     this.activo = true;
 }
+
+    @Override
+    public String toString() {
+        return nombre + " — Q" + String.format("%.2f", precio)
+                + " (stock: " + existencia + ")";
+    }
     
 }

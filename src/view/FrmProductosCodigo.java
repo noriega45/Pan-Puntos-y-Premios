@@ -53,6 +53,7 @@ public class FrmProductosCodigo extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         txtCodigo = new JTextField(18);
+        txtCodigo.setEditable(false);
         txtNombre = new JTextField(18);
         txtCategoria = new JTextField(18);
         txtPrecio = new JTextField(18);
@@ -159,9 +160,8 @@ public class FrmProductosCodigo extends JFrame {
             String precioTexto = txtPrecio.getText().trim();
             String existenciaTexto = txtExistencia.getText().trim();
 
-            if (codigo.isEmpty() || nombre.isEmpty()
-                    || categoria.isEmpty() || precioTexto.isEmpty()
-                    || existenciaTexto.isEmpty()) {
+            if (nombre.isEmpty() || categoria.isEmpty()
+                || precioTexto.isEmpty() || existenciaTexto.isEmpty()) {
                 JOptionPane.showMessageDialog(
                     this, "Completa todos los campos.",
                     "Validación", JOptionPane.WARNING_MESSAGE

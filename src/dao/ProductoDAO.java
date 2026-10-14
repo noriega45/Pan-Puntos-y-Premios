@@ -10,29 +10,42 @@ import java.util.List;
 
 public class ProductoDAO {
 
-    public boolean guardar(Producto producto) {
+public boolean guardar(Producto producto) {
+    String sqlId = "SELECT SEQ_PRODUCTOS.NEXTVAL FROM DUAL";
+    String sqlInsert = "INSERT INTO PRODUCTOS "
+            + "(ID_PRODUCTO, CODIGO, CATEGORIA, NOMBRE, PRECIO, EXISTENCIA, ACTIVO) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        String sql = "INSERT INTO PRODUCTOS "
-                + "(ID_PRODUCTO, CODIGO, CATEGORIA, NOMBRE, PRECIO, EXISTENCIA, ACTIVO) "
-                + "VALUES (SEQ_PRODUCTOS.NEXTVAL, ?, ?, ?, ?, ?, ?)";
+    try (Connection cn = Conexion.conectar()) {
+        int idProducto;
 
-        try (Connection cn = Conexion.conectar();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
+        try (PreparedStatement psId = cn.prepareStatement(sqlId);
+             ResultSet rs = psId.executeQuery()) {
+            if (!rs.next()) {
+                return false;
+            }
+            idProducto = rs.getInt(1);
+        }
 
-            ps.setString(1, producto.getCodigo());
-            ps.setString(2, producto.getCategoria());
-            ps.setString(3, producto.getNombre());
-            ps.setDouble(4, producto.getPrecio());
-            ps.setInt(5, producto.getExistencia());
-            ps.setInt(6, producto.isActivo() ? 1 : 0);
+        String codigo = "PROD" + String.format("%03d", idProducto);
+
+        try (PreparedStatement ps = cn.prepareStatement(sqlInsert)) {
+            ps.setInt(1, idProducto);
+            ps.setString(2, codigo);
+            ps.setString(3, producto.getCategoria());
+            ps.setString(4, producto.getNombre());
+            ps.setDouble(5, producto.getPrecio());
+            ps.setInt(6, producto.getExistencia());
+            ps.setInt(7, producto.isActivo() ? 1 : 0);
 
             return ps.executeUpdate() > 0;
-
-        } catch (Exception e) {
-            System.out.println("Error al guardar producto: " + e.getMessage());
-            return false;
         }
+
+    } catch (Exception e) {
+        System.out.println("Error al guardar producto: " + e.getMessage());
+        return false;
     }
+}
     
 public List<Producto> listar() {
     List<Producto> productos = new ArrayList<>();

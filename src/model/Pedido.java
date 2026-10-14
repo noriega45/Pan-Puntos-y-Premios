@@ -65,4 +65,9 @@ public class Pedido {
     public void setEstado(String estado) {
         this.estado = estado;
     }
+
+    @Override
+    public String toString() {
+        return "Pedido #" + idPedido + " - Q" + String.format("%.2f", total);
+    }
 }

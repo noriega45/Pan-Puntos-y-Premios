@@ -1,294 +1,107 @@
-
 package view;
 
 import controller.PedidoController;
-import model.Pedido;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.util.List;
-import java.sql.Date;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
+import model.Pedido;
 
 public class FrmPedidos extends JFrame {
-
     private final PedidoController controller = new PedidoController();
-
-    private JTextField txtIdCliente;
-    private JTextField txtTotal;
-    private JComboBox<String> cboEstado;
-    private JTable tblPedidos;
-    private DefaultTableModel modelo;
+    private final DefaultTableModel modelo = new DefaultTableModel(new Object[]{
+        "ID pedido", "ID cliente", "Fecha", "Total (Q)", "Estado"
+    }, 0) {
+        @Override
+        public boolean isCellEditable(int fila, int columna) {
+            return false;
+        }
+    };
+    private final JTable tabla = new JTable(modelo);
 
     public FrmPedidos() {
-        construirInterfaz();
-        cargarPedidos();
-    }
-
-    private void construirInterfaz() {
-        setTitle("Pan, Puntos y Premios - Gestión de Pedidos");
-        setSize(900, 550);
+        setTitle("Pan, Puntos y Premios - Estado de pedidos");
+        setSize(850, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         JPanel principal = new JPanel(new BorderLayout(10, 10));
-        principal.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        principal.setBackground(new Color(245, 247, 250));
-
-        JLabel titulo = new JLabel("GESTIÓN DE PEDIDOS");
-        titulo.setFont(new Font("SansSerif", Font.BOLD, 24));
-        titulo.setForeground(new Color(35, 65, 100));
+        principal.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+        JLabel titulo = new JLabel("SEGUIMIENTO DE PEDIDOS");
+        titulo.setFont(titulo.getFont().deriveFont(22f));
         principal.add(titulo, BorderLayout.NORTH);
+        tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        principal.add(new JScrollPane(tabla), BorderLayout.CENTER);
 
-        JPanel formulario = new JPanel(new GridLayout(2, 4, 10, 10));
-        formulario.setBorder(BorderFactory.createTitledBorder("Datos del pedido"));
-        formulario.setBackground(Color.WHITE);
-
-        txtIdCliente = new JTextField();
-        txtTotal = new JTextField();
-        cboEstado = new JComboBox<>(new String[]{
-            "PENDIENTE"
-        });
-
-        formulario.add(new JLabel("ID del cliente:"));
-        formulario.add(new JLabel("Total (Q):"));
-        formulario.add(new JLabel("Estado:"));
-        formulario.add(new JLabel(""));
-
-        formulario.add(txtIdCliente);
-        formulario.add(txtTotal);
-        formulario.add(cboEstado);
-
-        JButton btnGuardar = new JButton("Guardar pedido");
-        formulario.add(btnGuardar);
-
-        JPanel centro = new JPanel(new BorderLayout(10, 10));
-        centro.setBackground(new Color(245, 247, 250));
-        centro.add(formulario, BorderLayout.NORTH);
-
-        modelo = new DefaultTableModel(
-            new String[]{"ID Pedido", "ID Cliente", "Fecha", "Total (Q)", "Estado"},
-            0
-        ) {
-            @Override
-            public boolean isCellEditable(int fila, int columna) {
-                return false;
-            }
-        };
-
-        tblPedidos = new JTable(modelo);
-        tblPedidos.setRowHeight(25);
-        tblPedidos.setSelectionMode(
-            ListSelectionModel.SINGLE_SELECTION
-        );
-
-        JScrollPane scroll = new JScrollPane(tblPedidos);
-        scroll.setBorder(
-            BorderFactory.createTitledBorder("Pedidos registrados")
-        );
-        
-        tblPedidos.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                int fila = tblPedidos.getSelectedRow();
-
-                if (fila >= 0) {
-                    txtIdCliente.setText(
-                        modelo.getValueAt(fila, 1).toString()
-                    );
-
-                    txtTotal.setText(
-                        modelo.getValueAt(fila, 3).toString()
-                    );
-
-                    cboEstado.setSelectedItem(
-                        modelo.getValueAt(fila, 4).toString()
-                    );
-                }
-            }
-        });
-
-
-        centro.add(scroll, BorderLayout.CENTER);
-
-        JButton btnLimpiar = new JButton("Limpiar");
-        JButton btnActualizar = new JButton("Actualizar pedido");
-        JPanel botones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        botones.setBackground(new Color(245, 247, 250));
-        botones.add(btnLimpiar);
-        botones.add(btnActualizar);
-
-        centro.add(botones, BorderLayout.SOUTH);
-
-        principal.add(centro, BorderLayout.CENTER);
+        JButton btnActualizar = new JButton("Actualizar");
+        JButton btnEntregar = new JButton("Marcar entregado");
+        JButton btnAnular = new JButton("Anular pendiente");
+        JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        acciones.add(btnActualizar);
+        acciones.add(btnAnular);
+        acciones.add(btnEntregar);
+        principal.add(acciones, BorderLayout.SOUTH);
         add(principal);
 
-        btnGuardar.addActionListener(e -> guardarPedido());
-        btnLimpiar.addActionListener(e -> limpiarFormulario());
-        btnActualizar.addActionListener(e -> actualizarPedido());
+        btnActualizar.addActionListener(e -> cargarPedidos());
+        btnEntregar.addActionListener(e -> cambiarEstado(true));
+        btnAnular.addActionListener(e -> cambiarEstado(false));
+        cargarPedidos();
     }
 
     private void cargarPedidos() {
         modelo.setRowCount(0);
-
         List<Pedido> pedidos = controller.listarPedidos();
-
-        for (Pedido p : pedidos) {
-            modelo.addRow(new Object[]{
-                p.getIdPedido(),
-                p.getIdCliente(),
-                p.getFecha(),
-                p.getTotal(),
-                p.getEstado()
-            });
+        for (Pedido pedido : pedidos) {
+            modelo.addRow(new Object[]{pedido.getIdPedido(), pedido.getIdCliente(),
+                pedido.getFecha(), String.format("%.2f", pedido.getTotal()), pedido.getEstado()});
         }
     }
 
-    private void guardarPedido() {
-        try {
-            if (txtIdCliente.getText().trim().isEmpty()
-                    || txtTotal.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Ingresa el ID del cliente y el total."
-                );
-                return;
-            }
-
-            int idCliente = Integer.parseInt(
-                txtIdCliente.getText().trim()
-            );
-            if (!controller.existeCliente(idCliente)) {
-            JOptionPane.showMessageDialog(
-                this,
-                "El cliente no existe o está inactivo. Verifica el ID."
-            );
-            return;
-            }
-
-            double total = Double.parseDouble(
-                txtTotal.getText().trim()
-            );
-
-            if (idCliente <= 0 || total < 0) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "El ID debe ser positivo y el total no puede ser negativo."
-                );
-                return;
-            }
-
-            Pedido pedido = new Pedido();
-            pedido.setIdCliente(idCliente);
-            pedido.setTotal(total);
-            pedido.setEstado(cboEstado.getSelectedItem().toString());
-
-            if (controller.guardarPedido(pedido)) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Pedido guardado correctamente."
-                );
-                limpiarFormulario();
-                cargarPedidos();
-            } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "No se pudo guardar el pedido. Verifica que el cliente exista."
-                );
-            }
-
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(
-                this,
-                "El ID del cliente y el total deben ser números válidos."
-            );
-        }
-    }
-
-    private void limpiarFormulario() {
-        txtIdCliente.setText("");
-        txtTotal.setText("");
-        cboEstado.setSelectedIndex(0);
-        txtIdCliente.requestFocus();
-        
-    }
-        private void actualizarPedido() {
-        int fila = tblPedidos.getSelectedRow();
-
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Selecciona un pedido de la tabla para actualizar."
-            );
+    private void cambiarEstado(boolean entregar) {
+        int fila = tabla.getSelectedRow();
+        if (fila < 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un pedido de la tabla.");
             return;
         }
-
-        try {
-            int idPedido = Integer.parseInt(
-                modelo.getValueAt(fila, 0).toString()
-            );
-
-            if (txtIdCliente.getText().trim().isEmpty()
-                    || txtTotal.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Ingresa el ID del cliente y el total."
-                );
-                return;
-            }
-
-            int idCliente = Integer.parseInt(
-                txtIdCliente.getText().trim()
-            );
-            if (!controller.existeCliente(idCliente)) {
-            JOptionPane.showMessageDialog(
-                this,
-                "El cliente no existe o está inactivo. Verifica el ID."
-            );
+        int idPedido = Integer.parseInt(modelo.getValueAt(fila, 0).toString());
+        String estado = modelo.getValueAt(fila, 4).toString();
+        if ((entregar && !"PAGADO".equalsIgnoreCase(estado))
+                || (!entregar && !"PENDIENTE".equalsIgnoreCase(estado))) {
+            JOptionPane.showMessageDialog(this, entregar
+                    ? "Solo se pueden marcar como entregados los pedidos pagados."
+                    : "Solo se pueden anular pedidos pendientes.");
             return;
-            }
-
-            double total = Double.parseDouble(
-                txtTotal.getText().trim()
-            );
-
-            if (idCliente <= 0 || total < 0) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "El ID debe ser positivo y el total no puede ser negativo."
-                );
-                return;
-            }
-
-            Pedido pedido = new Pedido();
-            pedido.setIdPedido(idPedido);
-            pedido.setIdCliente(idCliente);
-            pedido.setTotal(total);
-            pedido.setEstado(cboEstado.getSelectedItem().toString());
-
-            if (controller.actualizarPedido(pedido)) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Pedido actualizado correctamente."
-                );
-                limpiarFormulario();
-                cargarPedidos();
-            } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "No se pudo actualizar el pedido. Verifica que el cliente exista."
-                );
-            }
-
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(
-                this,
-                "El ID del cliente y el total deben ser números válidos."
-            );
+        }
+        int confirmacion = JOptionPane.showConfirmDialog(this,
+                entregar ? "¿Confirmas que el pedido " + idPedido + " fue entregado?"
+                        : "¿Anular el pedido pendiente " + idPedido + "?",
+                "Confirmar cambio", JOptionPane.YES_NO_OPTION);
+        if (confirmacion != JOptionPane.YES_OPTION) {
+            return;
+        }
+        boolean actualizado = entregar
+                ? controller.marcarEntregado(idPedido)
+                : controller.anularPendiente(idPedido);
+        if (actualizado) {
+            cargarPedidos();
+        } else {
+            JOptionPane.showMessageDialog(this, "No se pudo cambiar el estado del pedido.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new FrmPedidos().setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new FrmPedidos().setVisible(true));
     }
 }

@@ -1,403 +1,245 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package view;
+
 import controller.ClienteController;
-import model.Cliente;
-import javax.swing.JOptionPane;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.util.List;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
+import model.Cliente;
 
-/**
- *
- * @author eduar
- */
-public class FrmClientes extends javax.swing.JFrame {
-    
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(FrmClientes.class.getName());
-    private ClienteController clienteController = new ClienteController();
-    private int idClienteSeleccionado = 0;
-    /**
-     * Creates new form FrmClientes
-     */
+public class FrmClientes extends JFrame {
+    private final ClienteController controller = new ClienteController();
+    private final DefaultTableModel modelo = new DefaultTableModel(
+            new Object[]{"ID", "Nombre", "Teléfono", "Correo", "Puntos"}, 0);
+    private JTextField txtNombre;
+    private JTextField txtTelefono;
+    private JTextField txtCorreo;
+    private JTextField txtIdBuscar;
+    private JTable tblClientes;
+    private int idSeleccionado;
+
     public FrmClientes() {
-        initComponents();
+        construirInterfaz();
         cargarClientes();
+    }
 
+    private void construirInterfaz() {
+        setTitle("Gestión de clientes");
+        setSize(850, 560);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        JPanel principal = new JPanel(new BorderLayout(10, 10));
+        principal.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+        JLabel titulo = new JLabel("GESTIÓN DE CLIENTES");
+        titulo.setFont(titulo.getFont().deriveFont(22f));
+        principal.add(titulo, BorderLayout.NORTH);
+
+        txtNombre = new JTextField();
+        txtTelefono = new JTextField();
+        txtCorreo = new JTextField();
+        txtIdBuscar = new JTextField();
+
+        JPanel campos = new JPanel(new GridLayout(4, 2, 8, 8));
+        campos.setBorder(BorderFactory.createTitledBorder("Datos del cliente"));
+        campos.add(new JLabel("Nombre:*"));
+        campos.add(txtNombre);
+        campos.add(new JLabel("Teléfono:"));
+        campos.add(txtTelefono);
+        campos.add(new JLabel("Correo:"));
+        campos.add(txtCorreo);
+        campos.add(new JLabel("Buscar por ID:"));
+        campos.add(txtIdBuscar);
+
+        tblClientes = new JTable(modelo);
+        tblClientes.setDefaultEditor(Object.class, null);
+        tblClientes.setAutoCreateRowSorter(true);
+        tblClientes.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        tblClientes.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && tblClientes.getSelectedRow() >= 0) {
+                cargarSeleccionTabla();
+            }
+        });
+
+        JPanel centro = new JPanel(new BorderLayout(8, 8));
+        centro.add(campos, BorderLayout.NORTH);
+        centro.add(new JScrollPane(tblClientes), BorderLayout.CENTER);
+
+        JButton btnGuardar = new JButton("Registrar");
+        JButton btnEditar = new JButton("Actualizar");
+        JButton btnDesactivar = new JButton("Desactivar");
+        JButton btnBuscar = new JButton("Buscar ID");
+        JButton btnPedidos = new JButton("Historial de pedidos");
+        JButton btnPuntos = new JButton("Movimientos de puntos");
+        JButton btnLimpiar = new JButton("Limpiar");
+        JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        acciones.add(btnBuscar);
+        acciones.add(btnGuardar);
+        acciones.add(btnEditar);
+        acciones.add(btnDesactivar);
+        acciones.add(btnPedidos);
+        acciones.add(btnPuntos);
+        acciones.add(btnLimpiar);
+
+        principal.add(centro, BorderLayout.CENTER);
+        principal.add(acciones, BorderLayout.SOUTH);
+        add(principal);
+
+        btnGuardar.addActionListener(e -> guardar());
+        btnEditar.addActionListener(e -> actualizar());
+        btnDesactivar.addActionListener(e -> desactivar());
+        btnBuscar.addActionListener(e -> buscar());
+        btnPedidos.addActionListener(e -> mostrarHistorialPedidos());
+        btnPuntos.addActionListener(e -> mostrarMovimientosPuntos());
+        btnLimpiar.addActionListener(e -> limpiar());
     }
 
     private void cargarClientes() {
-        DefaultTableModel modelo = (DefaultTableModel) tblClientes.getModel();
-
         modelo.setRowCount(0);
-
-        List<Cliente> clientes = clienteController.listarClientes();
-
-        for (Cliente cliente : clientes) {
-            modelo.addRow(new Object[]{
-                cliente.getIdCliente(),
-                cliente.getNombre(),
-                cliente.getNit(),
-                cliente.getTelefono(),
-                cliente.getCorreo()
-            });
+        for (Cliente cliente : controller.listarClientes()) {
+            modelo.addRow(new Object[]{cliente.getIdCliente(), cliente.getNombre(),
+                cliente.getTelefono(), cliente.getCorreo(), cliente.getPuntos()});
         }
     }
 
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
-
-        jLabel1 = new javax.swing.JLabel();
-        txtNombre = new javax.swing.JTextField();
-        jLabel2 = new javax.swing.JLabel();
-        txtNit = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
-        txtTelefono = new javax.swing.JTextField();
-        jLabel4 = new javax.swing.JLabel();
-        txtCorreo = new javax.swing.JTextField();
-        btnGuardar = new javax.swing.JButton();
-        btnLimpiar = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        tblClientes = new javax.swing.JTable();
-        btnEditar = new javax.swing.JButton();
-        btnDesactivar = new javax.swing.JButton();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Gestión de Clientes");
-
-        jLabel1.setText("Nombre: ");
-
-        jLabel2.setText("NIT::");
-
-        jLabel3.setText("Teléfono: ");
-
-        jLabel4.setText("Correo:");
-
-        btnGuardar.setText("Guardar");
-        btnGuardar.addActionListener(this::btnGuardarActionPerformed);
-
-        btnLimpiar.setText("Limpiar");
-        btnLimpiar.addActionListener(this::btnLimpiarActionPerformed);
-
-        tblClientes.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null}
-            },
-            new String [] {
-                "ID", "Nombre", "NIT", "Telefono", "Correo"
-            }
-        ));
-        tblClientes.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                tblClientesMouseClicked(evt);
-            }
-        });
-        jScrollPane1.setViewportView(tblClientes);
-
-        btnEditar.setText("Editar");
-        btnEditar.addActionListener(this::btnEditarActionPerformed);
-
-        btnDesactivar.setText("Desactivar");
-        btnDesactivar.addActionListener(this::btnDesactivarActionPerformed);
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(64, 64, 64)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(btnGuardar)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(btnLimpiar)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnEditar)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnDesactivar))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 79, Short.MAX_VALUE)
-                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtNombre)
-                            .addComponent(txtTelefono)
-                            .addComponent(txtNit)
-                            .addComponent(txtCorreo)))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 586, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(248, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(63, 63, 63)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1)
-                    .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel3)
-                        .addGap(15, 15, 15)
-                        .addComponent(jLabel4))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(txtNit, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel2))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnGuardar)
-                    .addComponent(btnLimpiar)
-                    .addComponent(btnEditar)
-                    .addComponent(btnDesactivar))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 28, Short.MAX_VALUE)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 405, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
-        // TODO add your handling code here:
-String nombre = txtNombre.getText().trim();
-String nit = txtNit.getText().trim();
-String telefono = txtTelefono.getText().trim();
-String correo = txtCorreo.getText().trim();
-
-if (nombre.isEmpty() || nit.isEmpty() || telefono.isEmpty() || correo.isEmpty()) {
-    JOptionPane.showMessageDialog(
-            this,
-            "Todos los campos son obligatorios.",
-            "Aviso",
-            JOptionPane.WARNING_MESSAGE
-    );
-    return;
-}
-
-Cliente cliente = new Cliente(
-        0,
-        nombre,
-        nit,
-        telefono,
-        correo
-);
-
-if (clienteController.guardarCliente(cliente)) {
-
-    JOptionPane.showMessageDialog(
-            this,
-            "Cliente guardado correctamente.",
-            "Éxito",
-            JOptionPane.INFORMATION_MESSAGE
-    );
-
-    txtNombre.setText("");
-    txtNit.setText("");
-    txtTelefono.setText("");
-    txtCorreo.setText("");
-    
-    cargarClientes();
-
-} else {
-
-    JOptionPane.showMessageDialog(
-            this,
-            "No se pudo guardar el cliente.",
-            "Error",
-            JOptionPane.ERROR_MESSAGE
-    );
-}
-    }//GEN-LAST:event_btnGuardarActionPerformed
-
-    private void btnLimpiarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLimpiarActionPerformed
-        // TODO add your handling code here:
-        txtNombre.setText("");
-        txtNit.setText("");
-        txtTelefono.setText("");
-        txtCorreo.setText("");
-    }//GEN-LAST:event_btnLimpiarActionPerformed
-
-    private void tblClientesMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblClientesMouseClicked
-        // TODO add your handling code here:
-        int fila = tblClientes.getSelectedRow();
-
-    if (fila >= 0) {
-        idClienteSeleccionado = Integer.parseInt(
-            tblClientes.getValueAt(fila, 0).toString()
-        );
-
-        txtNombre.setText(tblClientes.getValueAt(fila, 1).toString());
-        txtNit.setText(tblClientes.getValueAt(fila, 2).toString());
-
-        Object telefono = tblClientes.getValueAt(fila, 3);
-        txtTelefono.setText(telefono == null ? "" : telefono.toString());
-
-        Object correo = tblClientes.getValueAt(fila, 4);
-        txtCorreo.setText(correo == null ? "" : correo.toString());
-    }
-    }//GEN-LAST:event_tblClientesMouseClicked
-
-    private void btnEditarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEditarActionPerformed
-        
-    if (idClienteSeleccionado <= 0) {
-        JOptionPane.showMessageDialog(
-            this,
-            "Selecciona un cliente de la tabla para editar.",
-            "Aviso",
-            JOptionPane.WARNING_MESSAGE
-        );
-        return;
+    private void cargarSeleccionTabla() {
+        int fila = tblClientes.convertRowIndexToModel(tblClientes.getSelectedRow());
+        idSeleccionado = Integer.parseInt(modelo.getValueAt(fila, 0).toString());
+        txtIdBuscar.setText(String.valueOf(idSeleccionado));
+        txtNombre.setText(valorCelda(fila, 1));
+        txtTelefono.setText(valorCelda(fila, 2));
+        txtCorreo.setText(valorCelda(fila, 3));
     }
 
-    String nombre = txtNombre.getText().trim();
-    String nit = txtNit.getText().trim();
-    String telefono = txtTelefono.getText().trim();
-    String correo = txtCorreo.getText().trim();
-
-    if (nombre.isEmpty() || nit.isEmpty()) {
-        JOptionPane.showMessageDialog(
-            this,
-            "El nombre y el NIT son obligatorios."
-        );
-        return;
+    private String valorCelda(int fila, int columna) {
+        Object valor = modelo.getValueAt(fila, columna);
+        return valor == null ? "" : valor.toString();
     }
 
-    Cliente cliente = new Cliente(
-        idClienteSeleccionado,
-        nombre,
-        nit,
-        telefono,
-        correo
-    );
-
-    if (clienteController.actualizarCliente(cliente)) {
-        JOptionPane.showMessageDialog(
-            this,
-            "Cliente actualizado correctamente."
-        );
-
-        cargarClientes();
-        idClienteSeleccionado = 0;
-
-        txtNombre.setText("");
-        txtNit.setText("");
-        txtTelefono.setText("");
-        txtCorreo.setText("");
-    } else {
-        JOptionPane.showMessageDialog(
-            this,
-            "No se pudo actualizar el cliente. Verifica que el NIT no esté repetido.",
-            "Error",
-            JOptionPane.ERROR_MESSAGE
-        );
+    private void guardar() {
+        String nombre = txtNombre.getText().trim();
+        if (nombre.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El nombre del cliente es obligatorio.");
+            return;
+        }
+        Cliente cliente = new Cliente(0, nombre, null,
+                txtTelefono.getText().trim(), txtCorreo.getText().trim());
+        if (controller.guardarCliente(cliente)) {
+            JOptionPane.showMessageDialog(this, "Cliente registrado correctamente.");
+            limpiar();
+            cargarClientes();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo registrar el cliente. Revisa la conexión y los datos.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    }//GEN-LAST:event_btnEditarActionPerformed
-
-    private void btnDesactivarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDesactivarActionPerformed
-        // TODO add your handling code here:
-        if (idClienteSeleccionado <= 0) {
-    JOptionPane.showMessageDialog(
-        this,
-        "Selecciona un cliente de la tabla para desactivar.",
-        "Aviso",
-        JOptionPane.WARNING_MESSAGE
-    );
-    return;
+    private void actualizar() {
+        if (idSeleccionado <= 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente o búscalo por ID.");
+            return;
+        }
+        String nombre = txtNombre.getText().trim();
+        if (nombre.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El nombre del cliente es obligatorio.");
+            return;
+        }
+        Cliente cliente = new Cliente(idSeleccionado, nombre, null,
+                txtTelefono.getText().trim(), txtCorreo.getText().trim());
+        if (controller.actualizarCliente(cliente)) {
+            JOptionPane.showMessageDialog(this, "Cliente actualizado.");
+            limpiar();
+            cargarClientes();
+        } else {
+            JOptionPane.showMessageDialog(this, "No se pudo actualizar el cliente.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    int confirmacion = JOptionPane.showConfirmDialog(
-        this,
-        "¿Seguro que deseas desactivar este cliente?",
-        "Confirmar desactivación",
-        JOptionPane.YES_NO_OPTION,
-        JOptionPane.WARNING_MESSAGE
-    );
-
-    if (confirmacion != JOptionPane.YES_OPTION) {
-        return;
-    }
-
-    if (clienteController.desactivarCliente(idClienteSeleccionado)) {
-        JOptionPane.showMessageDialog(
-            this,
-            "Cliente desactivado correctamente."
-        );
-
-        cargarClientes();
-        idClienteSeleccionado = 0;
-
-        txtNombre.setText("");
-        txtNit.setText("");
-        txtTelefono.setText("");
-        txtCorreo.setText("");
-
-    } else {
-        JOptionPane.showMessageDialog(
-            this,
-            "No se pudo desactivar el cliente.",
-            "Error",
-            JOptionPane.ERROR_MESSAGE
-        );
-    }
-    }//GEN-LAST:event_btnDesactivarActionPerformed
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
+    private void buscar() {
         try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
+            int id = Integer.parseInt(txtIdBuscar.getText().trim());
+            Cliente cliente = controller.buscarCliente(id);
+            if (cliente == null) {
+                JOptionPane.showMessageDialog(this, "No se encontró un cliente activo con ese ID.");
+                return;
             }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            idSeleccionado = cliente.getIdCliente();
+            txtNombre.setText(cliente.getNombre());
+            txtTelefono.setText(cliente.getTelefono() == null ? "" : cliente.getTelefono());
+            txtCorreo.setText(cliente.getCorreo() == null ? "" : cliente.getCorreo());
+            JOptionPane.showMessageDialog(this,
+                    "Cliente: " + cliente.getNombre() + "\nPuntos: " + cliente.getPuntos());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Escribe un ID numérico válido.");
         }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new FrmClientes().setVisible(true));
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnDesactivar;
-    private javax.swing.JButton btnEditar;
-    private javax.swing.JButton btnGuardar;
-    private javax.swing.JButton btnLimpiar;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable tblClientes;
-    private javax.swing.JTextField txtCorreo;
-    private javax.swing.JTextField txtNit;
-    private javax.swing.JTextField txtNombre;
-    private javax.swing.JTextField txtTelefono;
-    // End of variables declaration//GEN-END:variables
+    private void desactivar() {
+        if (idSeleccionado <= 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente o búscalo por ID.");
+            return;
+        }
+        int confirmar = JOptionPane.showConfirmDialog(this,
+                "¿Desactivar al cliente #" + idSeleccionado + "?",
+                "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (confirmar == JOptionPane.YES_OPTION
+                && controller.desactivarCliente(idSeleccionado)) {
+            JOptionPane.showMessageDialog(this, "Cliente desactivado.");
+            limpiar();
+            cargarClientes();
+        }
+    }
+
+    private void mostrarHistorialPedidos() {
+        mostrarHistorial("Pedidos del cliente",
+                new String[]{"ID pedido", "Fecha", "Total (Q)", "Estado"},
+                controller.listarPedidosCliente(idSeleccionado));
+    }
+
+    private void mostrarMovimientosPuntos() {
+        mostrarHistorial("Movimientos de puntos",
+                new String[]{"Fecha", "Tipo", "Puntos", "Descripción"},
+                controller.listarMovimientosPuntos(idSeleccionado));
+    }
+
+    private void mostrarHistorial(String titulo, String[] columnas, List<Object[]> filas) {
+        if (idSeleccionado <= 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente o búscalo por ID.");
+            return;
+        }
+        DefaultTableModel historial = new DefaultTableModel(columnas, 0);
+        for (Object[] fila : filas) {
+            historial.addRow(fila);
+        }
+        JTable tablaHistorial = new JTable(historial);
+        tablaHistorial.setDefaultEditor(Object.class, null);
+        JScrollPane scroll = new JScrollPane(tablaHistorial);
+        scroll.setPreferredSize(new java.awt.Dimension(680, 300));
+        JOptionPane.showMessageDialog(this, scroll, titulo, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void limpiar() {
+        idSeleccionado = 0;
+        txtNombre.setText("");
+        txtTelefono.setText("");
+        txtCorreo.setText("");
+        txtIdBuscar.setText("");
+        tblClientes.clearSelection();
+    }
+
+    public static void main(String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> new FrmClientes().setVisible(true));
+    }
 }
