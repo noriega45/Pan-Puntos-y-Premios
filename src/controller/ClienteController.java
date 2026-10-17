@@ -36,11 +36,9 @@ public class ClienteController {
     public List<Object[]> listarMovimientosPuntos(int idCliente) {
         return clienteDAO.listarMovimientosPuntos(idCliente);
     }
-    public boolean actualizarPuntos(int idCliente, int puntos) {
-    return clienteDAO.actualizarPuntos(idCliente, puntos);
+
+public int buscarClienteDuplicado(String telefono, String correo, int idExcluir) {
+    return clienteDAO.buscarIdDuplicado(telefono, correo, idExcluir);
 }
 
-public boolean existeCliente(int idCliente) {
-    return clienteDAO.existe(idCliente);
-}
 }

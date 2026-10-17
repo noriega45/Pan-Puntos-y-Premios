@@ -35,6 +35,13 @@ public class PagoController {
         return pagoDAO.guardar(pago);
     }
 
+    public List<String> listarFaltantesInventario(int idPedido) {
+        if (idPedido <= 0) {
+            return java.util.Collections.emptyList();
+        }
+        return pagoDAO.listarFaltantesInventario(idPedido);
+    }
+
     public List<Pago> listarPagosPorPedido(int idPedido) {
 
         if (idPedido <= 0) {

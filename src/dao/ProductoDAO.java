@@ -50,11 +50,12 @@ public boolean guardar(Producto producto) {
 public List<Producto> listar() {
     List<Producto> productos = new ArrayList<>();
 
-    String sql = "SELECT ID_PRODUCTO, CODIGO, CATEGORIA, "
-               + "NOMBRE, PRECIO, EXISTENCIA "
-               + "FROM PRODUCTOS "
-               + "WHERE ACTIVO = 1 "
-               + "ORDER BY ID_PRODUCTO";
+    String sql = "SELECT P.ID_PRODUCTO, P.CODIGO, P.CATEGORIA, "
+               + "P.NOMBRE, P.PRECIO, P.EXISTENCIA, NVL(C.TIPO, 'EXTRA') TIPO "
+               + "FROM PRODUCTOS P "
+               + "LEFT JOIN CATEGORIAS C ON C.NOMBRE = P.CATEGORIA "
+               + "WHERE P.ACTIVO = 1 "
+               + "ORDER BY P.ID_PRODUCTO";
 
     try (Connection cn = Conexion.conectar();
          PreparedStatement ps = cn.prepareStatement(sql);
@@ -69,6 +70,7 @@ public List<Producto> listar() {
                 rs.getDouble("PRECIO"),
                 rs.getInt("EXISTENCIA")
             );
+            producto.setTipoCategoria(rs.getString("TIPO"));
 
             productos.add(producto);
         }
@@ -106,7 +108,6 @@ public boolean actualizar(Producto producto) {
     }
 }
 
-
 public boolean desactivar(int idProducto) {
     String sql = "UPDATE PRODUCTOS SET ACTIVO = 0 "
                + "WHERE ID_PRODUCTO = ? AND ACTIVO = 1";
@@ -125,31 +126,5 @@ public boolean desactivar(int idProducto) {
         return false;
     }
    }
-        
-public boolean aumentarExistencia(int idProducto, int cantidad) {
-
-    if (idProducto <= 0 || cantidad <= 0) {
-        return false;
-    }
-
-    String sql = "UPDATE PRODUCTOS "
-               + "SET EXISTENCIA = EXISTENCIA + ? "
-               + "WHERE ID_PRODUCTO = ? AND ACTIVO = 1";
-
-    try (Connection cn = Conexion.conectar();
-         PreparedStatement ps = cn.prepareStatement(sql)) {
-
-        ps.setInt(1, cantidad);
-        ps.setInt(2, idProducto);
-
-        return ps.executeUpdate() > 0;
-
-    } catch (Exception e) {
-        System.out.println(
-            "Error al aumentar existencia: " + e.getMessage()
-        );
-        return false;
-    }
-}
 
 }

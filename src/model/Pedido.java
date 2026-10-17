@@ -1,6 +1,9 @@
 package model;
 
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class Pedido {
 
@@ -9,6 +12,7 @@ public class Pedido {
     private Date fecha;
     private double total;
     private String estado;
+    private final List<ItemVenta> detalles = new ArrayList<>();
 
     public Pedido() {
         this.fecha = new Date(System.currentTimeMillis());
@@ -64,6 +68,49 @@ public class Pedido {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public void agregarDetalle(ItemVenta item) {
+        if (item == null) {
+            throw new IllegalArgumentException("El artículo no puede ser nulo.");
+        }
+        detalles.add(item);
+        total = calcularTotal();
+    }
+
+    public void quitarDetalle(int indice) {
+        detalles.remove(indice);
+        total = calcularTotal();
+    }
+
+    public void limpiarDetalles() {
+        detalles.clear();
+        total = 0;
+        idPedido = 0;
+    }
+
+    public List<ItemVenta> getDetalles() {
+        return Collections.unmodifiableList(detalles);
+    }
+
+    public boolean tieneDetalles() {
+        return !detalles.isEmpty();
+    }
+
+    public double calcularTotal() {
+        double suma = 0;
+        for (ItemVenta item : detalles) {
+            suma += item.calcularSubtotal();
+        }
+        return suma;
+    }
+
+    public int calcularPuntos() {
+        int puntos = 0;
+        for (ItemVenta item : detalles) {
+            puntos += item.calcularPuntos();
+        }
+        return puntos;
     }
 
     @Override

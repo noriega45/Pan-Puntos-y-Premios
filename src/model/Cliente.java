@@ -1,13 +1,5 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
-/**
- *
- * @author eduar
- */
 public class Cliente {
     
     private int idCliente;
@@ -18,7 +10,6 @@ public class Cliente {
     private int puntos;
     private boolean activo;
 
-    
     public Cliente() {
         this.puntos = 0;
         this.activo = true;    
@@ -91,5 +82,4 @@ public class Cliente {
     }
     
 }
-
 

@@ -13,18 +13,32 @@ public class AbastecimientoDAO {
 
     public boolean guardar(Abastecimiento abastecimiento) {
 
+        String sqlId = "SELECT SEQ_ABASTECIMIENTOS.NEXTVAL FROM DUAL";
         String sql = "INSERT INTO ABASTECIMIENTOS "
                 + "(ID_ABASTECIMIENTO, ID_PROVEEDOR, FECHA, TOTAL) "
-                + "VALUES (SEQ_ABASTECIMIENTOS.NEXTVAL, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?)";
 
-        try (Connection cn = Conexion.conectar();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
+        try (Connection cn = Conexion.conectar()) {
+            int idAbastecimiento;
+            try (PreparedStatement psId = cn.prepareStatement(sqlId);
+                 ResultSet rs = psId.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                idAbastecimiento = rs.getInt(1);
+            }
 
-            ps.setInt(1, abastecimiento.getIdProveedor());
-            ps.setDate(2, abastecimiento.getFecha());
-            ps.setDouble(3, abastecimiento.getTotal());
-
-            return ps.executeUpdate() > 0;
+            try (PreparedStatement ps = cn.prepareStatement(sql)) {
+                ps.setInt(1, idAbastecimiento);
+                ps.setInt(2, abastecimiento.getIdProveedor());
+                ps.setDate(3, abastecimiento.getFecha());
+                ps.setDouble(4, abastecimiento.getTotal());
+                if (ps.executeUpdate() > 0) {
+                    abastecimiento.setIdAbastecimiento(idAbastecimiento);
+                    return true;
+                }
+                return false;
+            }
 
         } catch (Exception e) {
             System.out.println("Error al guardar abastecimiento: "

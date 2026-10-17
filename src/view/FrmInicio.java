@@ -33,14 +33,14 @@ public class FrmInicio extends JFrame {
         agregar(botones, "Reportes", FrmReportes::new);
         agregar(botones, "Categorías", FrmCategorias::new);
         agregar(botones, "Proveedores", FrmProveedores::new);
-        agregar(botones, "Seguimiento de pedidos", FrmPedidos::new);
+        agregar(botones, "Historial de pedidos", FrmPedidos::new);
         principal.add(botones, BorderLayout.CENTER);
         add(principal);
     }
 
     private void agregar(JPanel panel, String texto, java.util.function.Supplier<JFrame> abrir) {
         JButton boton = new JButton(texto);
-        boton.addActionListener(e -> abrir.get().setVisible(true));
+        boton.addActionListener(e -> Navegacion.abrir(this, abrir.get()));
         panel.add(boton);
     }
 

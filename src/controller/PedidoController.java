@@ -9,32 +9,23 @@ public class PedidoController {
 
     private final PedidoDAO pedidoDAO = new PedidoDAO();
 
-    public boolean guardarPedido(Pedido pedido) {
-        return pedidoDAO.guardar(pedido);
-    }
-
-    public List<Pedido> listarPedidos() {
-        return pedidoDAO.listar();
-    }
-
     public List<Pedido> listarPendientesConDetalles() {
         return pedidoDAO.listarPendientesConDetalles();
     }
-    
-    public java.util.List<model.DetallePedido> listarDetallesPedido(int idPedido) {
-        dao.DetallePedidoDAO detalleDAO = new dao.DetallePedidoDAO();
-        return detalleDAO.listarPorPedido(idPedido);
+
+    public List<Object[]> listarDetalleConNombres(int idPedido) {
+        return pedidoDAO.listarDetalleConNombres(idPedido);
     }
-    
+
+    public List<Object[]> listarHistorial(String estado) {
+        return pedidoDAO.listarHistorial(estado);
+    }
+
     public boolean marcarEntregado(int idPedido) {
         return pedidoDAO.marcarEntregado(idPedido);
     }
 
     public boolean anularPendiente(int idPedido) {
         return pedidoDAO.anularPendiente(idPedido);
-    }
-    public boolean existeCliente(int idCliente) {
-    dao.ClienteDAO clienteDAO = new dao.ClienteDAO();
-    return clienteDAO.existe(idCliente);
     }
 }

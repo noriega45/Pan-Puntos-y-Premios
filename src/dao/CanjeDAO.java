@@ -5,22 +5,21 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import model.Canje;
 import util.Conexion;
 
 public class CanjeDAO {
 
-    public boolean canjear(int idCliente, int idPremio) {
-        if (idCliente <= 0 || idPremio <= 0) {
-            return false;
+    public String canjear(int idCliente, int idPremio) {
+        if (idCliente <= 0) {
+            return "Selecciona un cliente.";
         }
-
+        if (idPremio <= 0) {
+            return "Selecciona un premio.";
+        }
         String sqlCliente = "SELECT PUNTOS FROM CLIENTES "
                 + "WHERE ID_CLIENTE = ? AND ACTIVO = 1 FOR UPDATE";
-        String sqlPremio = "SELECT NOMBRE, PUNTOS_REQUERIDOS, ID_PRODUCTO, ID_MENU "
-                + "FROM PREMIOS WHERE ID_PREMIO = ? AND ACTIVO = 1 "
-                + "AND EXISTENCIA > 0 AND (ID_PRODUCTO IS NOT NULL OR ID_MENU IS NOT NULL) FOR UPDATE";
-
+        String sqlPremio = "SELECT NOMBRE, PUNTOS_REQUERIDOS, EXISTENCIA, ID_PRODUCTO, ID_MENU "
+                + "FROM PREMIOS WHERE ID_PREMIO = ? AND ACTIVO = 1 FOR UPDATE";
         try (Connection cn = Conexion.conectar()) {
             boolean autoCommitOriginal = cn.getAutoCommit();
             cn.setAutoCommit(false);
@@ -31,14 +30,14 @@ public class CanjeDAO {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
                             cn.rollback();
-                            return false;
+                            return "El cliente no existe o está inactivo.";
                         }
                         saldo = rs.getInt("PUNTOS");
                     }
                 }
-
                 String nombrePremio;
                 int costo;
+                int existenciaPremio;
                 int idProducto;
                 int idMenu;
                 try (PreparedStatement ps = cn.prepareStatement(sqlPremio)) {
@@ -46,10 +45,11 @@ public class CanjeDAO {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
                             cn.rollback();
-                            return false;
+                            return "El premio no existe o está inactivo.";
                         }
                         nombrePremio = rs.getString("NOMBRE");
                         costo = rs.getInt("PUNTOS_REQUERIDOS");
+                        existenciaPremio = rs.getInt("EXISTENCIA");
                         idProducto = rs.getInt("ID_PRODUCTO");
                         if (rs.wasNull()) {
                             idProducto = 0;
@@ -60,12 +60,19 @@ public class CanjeDAO {
                         }
                     }
                 }
-
-                if (costo <= 0 || saldo < costo || (idProducto == 0) == (idMenu == 0)) {
+                if (existenciaPremio <= 0) {
                     cn.rollback();
-                    return false;
+                    return "El premio " + nombrePremio + " ya no tiene unidades disponibles.";
                 }
-
+                if ((idProducto == 0) == (idMenu == 0)) {
+                    cn.rollback();
+                    return "El premio " + nombrePremio + " no está asociado a un producto o menú.";
+                }
+                if (saldo < costo) {
+                    cn.rollback();
+                    return "Puntos insuficientes: el cliente tiene " + saldo
+                            + " y el premio requiere " + costo + ".";
+                }
                 if (idProducto > 0) {
                     try (PreparedStatement ps = cn.prepareStatement(
                             "UPDATE PRODUCTOS SET EXISTENCIA = EXISTENCIA - 1 "
@@ -73,15 +80,14 @@ public class CanjeDAO {
                         ps.setInt(1, idProducto);
                         if (ps.executeUpdate() != 1) {
                             cn.rollback();
-                            return false;
+                            return "No hay existencias en inventario del producto de este premio.";
                         }
                     }
                     registrarMovimientoInventario(cn, idProducto, -1, "Canje de premio #" + idPremio);
                 } else if (!descontarComponentesMenu(cn, idMenu, idPremio)) {
                     cn.rollback();
-                    return false;
+                    return "No hay existencias suficientes de los productos que forman el menú de este premio.";
                 }
-
                 try (PreparedStatement ps = cn.prepareStatement(
                         "UPDATE CLIENTES SET PUNTOS = PUNTOS - ? "
                         + "WHERE ID_CLIENTE = ? AND ACTIVO = 1 AND PUNTOS >= ?")) {
@@ -90,32 +96,26 @@ public class CanjeDAO {
                     ps.setInt(3, costo);
                     if (ps.executeUpdate() != 1) {
                         cn.rollback();
-                        return false;
+                        return "No se pudieron descontar los puntos del cliente.";
                     }
                 }
-
                 try (PreparedStatement ps = cn.prepareStatement(
                         "UPDATE PREMIOS SET EXISTENCIA = EXISTENCIA - 1 "
                         + "WHERE ID_PREMIO = ? AND ACTIVO = 1 AND EXISTENCIA > 0")) {
                     ps.setInt(1, idPremio);
                     if (ps.executeUpdate() != 1) {
                         cn.rollback();
-                        return false;
+                        return "El premio ya no tiene unidades disponibles.";
                     }
                 }
-
                 try (PreparedStatement ps = cn.prepareStatement(
                         "INSERT INTO CANJES (ID_CANJE, ID_CLIENTE, ID_PREMIO, PUNTOS_UTILIZADOS) "
                         + "VALUES (SEQ_CANJES.NEXTVAL, ?, ?, ?)")) {
                     ps.setInt(1, idCliente);
                     ps.setInt(2, idPremio);
                     ps.setInt(3, costo);
-                    if (ps.executeUpdate() != 1) {
-                        cn.rollback();
-                        return false;
-                    }
+                    ps.executeUpdate();
                 }
-
                 try (PreparedStatement ps = cn.prepareStatement(
                         "INSERT INTO MOVIMIENTOS_PUNTOS "
                         + "(ID_MOVIMIENTO, ID_CLIENTE, TIPO, PUNTOS, DESCRIPCION) "
@@ -123,14 +123,10 @@ public class CanjeDAO {
                     ps.setInt(1, idCliente);
                     ps.setInt(2, costo);
                     ps.setString(3, "Canje: " + nombrePremio);
-                    if (ps.executeUpdate() != 1) {
-                        cn.rollback();
-                        return false;
-                    }
+                    ps.executeUpdate();
                 }
-
                 cn.commit();
-                return true;
+                return null;
             } catch (Exception e) {
                 cn.rollback();
                 throw e;
@@ -139,8 +135,28 @@ public class CanjeDAO {
             }
         } catch (Exception e) {
             System.out.println("Error al registrar canje: " + e.getMessage());
-            return false;
+            return "Error de base de datos al registrar el canje: " + e.getMessage();
         }
+    }
+
+    public List<Object[]> listarHistorialCliente(int idCliente) {
+        List<Object[]> filas = new ArrayList<>();
+        String sql = "SELECT C.FECHA, P.NOMBRE, C.PUNTOS_UTILIZADOS "
+                + "FROM CANJES C JOIN PREMIOS P ON P.ID_PREMIO = C.ID_PREMIO "
+                + "WHERE C.ID_CLIENTE = ? ORDER BY C.FECHA DESC, C.ID_CANJE DESC";
+        try (Connection cn = Conexion.conectar();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, idCliente);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    filas.add(new Object[]{rs.getTimestamp("FECHA"), rs.getString("NOMBRE"),
+                        rs.getInt("PUNTOS_UTILIZADOS")});
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error al listar historial de canjes: " + e.getMessage());
+        }
+        return filas;
     }
 
     private boolean descontarComponentesMenu(Connection cn, int idMenu, int idPremio) throws Exception {
@@ -189,26 +205,4 @@ public class CanjeDAO {
         }
     }
 
-    public List<Canje> listarPorCliente(int idCliente) {
-        List<Canje> canjes = new ArrayList<>();
-        if (idCliente <= 0) {
-            return canjes;
-        }
-        String sql = "SELECT ID_CANJE, ID_CLIENTE, ID_PREMIO, FECHA, PUNTOS_UTILIZADOS "
-                + "FROM CANJES WHERE ID_CLIENTE = ? ORDER BY FECHA DESC, ID_CANJE DESC";
-        try (Connection cn = Conexion.conectar();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, idCliente);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    canjes.add(new Canje(rs.getInt("ID_CANJE"), rs.getInt("ID_CLIENTE"),
-                            rs.getInt("ID_PREMIO"), rs.getDate("FECHA"),
-                            rs.getInt("PUNTOS_UTILIZADOS")));
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Error al listar canjes: " + e.getMessage());
-        }
-        return canjes;
-    }
 }

@@ -47,7 +47,6 @@ public class DetallePedidoDAO {
             cn.setAutoCommit(false);
 
             try {
-                // 1. Verificar que el pedido esté pendiente.
                 try (PreparedStatement ps =
                         cn.prepareStatement(sqlPedido)) {
 
@@ -61,9 +60,6 @@ public class DetallePedidoDAO {
                     }
                 }
 
-                // 2. Verificar que el producto esté activo
-                // y tenga existencias suficientes.
-                // No descontar inventario todavía.
                 try (PreparedStatement ps =
                         cn.prepareStatement(sqlProducto)) {
 
@@ -79,7 +75,6 @@ public class DetallePedidoDAO {
                     }
                 }
 
-                // 3. Guardar el detalle del pedido.
                 try (PreparedStatement ps =
                         cn.prepareStatement(sqlDetalle)) {
 
@@ -94,7 +89,6 @@ public class DetallePedidoDAO {
                     }
                 }
 
-                // 4. Recalcular el total del pedido.
                 try (PreparedStatement ps =
                         cn.prepareStatement(sqlTotal)) {
 

@@ -9,7 +9,6 @@ public class DetallePedidoController {
 
     private final DetallePedidoDAO detalleDAO = new DetallePedidoDAO();
 
-
 public boolean guardarDetalle(DetallePedido detalle) {
     if (detalle.getIdPedido() <= 0
             || detalle.getIdProducto() <= 0
@@ -26,7 +25,6 @@ public boolean guardarDetalle(DetallePedido detalle) {
 
     return detalleDAO.actualizarTotalPedido(detalle.getIdPedido());
 }
-
 
     public List<DetallePedido> listarDetallesPorPedido(int idPedido) {
         if (idPedido <= 0) {

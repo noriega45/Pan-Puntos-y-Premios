@@ -14,7 +14,7 @@ public class ClienteDAO {
 
         String sql = "INSERT INTO CLIENTES "
                 + "(ID_CLIENTE, NOMBRE, TELEFONO, CORREO) "
-                + "VALUES (SEQ_CLIENTES.NEXTVAL, ?, ?, ?)";
+                + "SELECT NVL(MAX(ID_CLIENTE), 0) + 1, ?, ?, ? FROM CLIENTES";
 
         try (Connection cn = Conexion.conectar();
              PreparedStatement ps = cn.prepareStatement(sql)) {
@@ -162,50 +162,27 @@ public List<Object[]> listarMovimientosPuntos(int idCliente) {
         return false;
     }
 }
-    public boolean existe(int idCliente) {
-    String sql = "SELECT 1 FROM CLIENTES "
-               + "WHERE ID_CLIENTE = ? AND ACTIVO = 1";
-
-    try (Connection cn = Conexion.conectar();
-         PreparedStatement ps = cn.prepareStatement(sql)) {
-
-        ps.setInt(1, idCliente);
-
-        try (ResultSet rs = ps.executeQuery()) {
-            return rs.next();
+    public int buscarIdDuplicado(String telefono, String correo, int idExcluir) {
+        if (telefono == null || telefono.trim().isEmpty()
+                || correo == null || correo.trim().isEmpty()) {
+            return 0;
         }
-
-    } catch (Exception e) {
-        System.out.println("Error al verificar cliente: " + e.getMessage());
-        return false;
+        String sql = "SELECT MIN(ID_CLIENTE) FROM CLIENTES "
+                + "WHERE TRIM(TELEFONO) = ? AND LOWER(TRIM(CORREO)) = LOWER(?) AND ID_CLIENTE <> ?";
+        try (Connection cn = Conexion.conectar();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, telefono.trim());
+            ps.setString(2, correo.trim());
+            ps.setInt(3, idExcluir);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error al buscar cliente duplicado: " + e.getMessage());
+        }
+        return 0;
     }
-}
-
-public boolean actualizarPuntos(int idCliente, int puntos) {
-
-    if (idCliente <= 0) {
-        return false;
-    }
-
-    String sql = "UPDATE CLIENTES "
-               + "SET PUNTOS = PUNTOS + ? "
-               + "WHERE ID_CLIENTE = ? AND ACTIVO = 1";
-
-    try (Connection cn = Conexion.conectar();
-         PreparedStatement ps = cn.prepareStatement(sql)) {
-
-        ps.setInt(1, puntos);
-        ps.setInt(2, idCliente);
-
-        return ps.executeUpdate() > 0;
-
-    } catch (Exception e) {
-        System.out.println(
-            "Error al actualizar puntos del cliente: " + e.getMessage()
-        );
-        return false;
-    }
-}
-
 
 }

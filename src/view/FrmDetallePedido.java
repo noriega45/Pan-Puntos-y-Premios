@@ -12,7 +12,6 @@ import controller.MenuController;
 import model.DetallePedidoMenu;
 import model.Menu;
 
-
 public class FrmDetallePedido extends JFrame {
 
     private final DetallePedidoController controller =

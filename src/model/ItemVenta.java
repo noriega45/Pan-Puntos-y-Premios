@@ -23,4 +23,8 @@ public abstract class ItemVenta {
     public abstract String getTipo();
 
     public abstract int calcularPuntos();
+
+    public double calcularSubtotal() {
+        return getPrecioUnitario() * cantidad;
+    }
 }

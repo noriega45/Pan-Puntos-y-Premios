@@ -34,40 +34,4 @@ public class PremioDAO {
         return premios;
     }
 
-    public boolean guardar(Premio premio) {
-
-        if (premio == null || premio.getNombre() == null
-                || premio.getNombre().trim().isEmpty()
-                || premio.getPuntosRequeridos() <= 0 || premio.getExistencia() < 0
-                || (premio.getIdProducto() > 0) == (premio.getIdMenu() > 0)) {
-            return false;
-        }
-
-        String sql = "INSERT INTO PREMIOS "
-                + "(ID_PREMIO, NOMBRE, DESCRIPCION, PUNTOS_REQUERIDOS, EXISTENCIA, ACTIVO, ID_PRODUCTO, ID_MENU) "
-                + "VALUES (SEQ_PREMIOS.NEXTVAL, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection cn = Conexion.conectar();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-
-            ps.setString(1, premio.getNombre());
-            ps.setString(2, premio.getDescripcion());
-            ps.setInt(3, premio.getPuntosRequeridos());
-            ps.setInt(4, premio.getExistencia());
-            ps.setInt(5, premio.isActivo() ? 1 : 0);
-            if (premio.getIdProducto() > 0) {
-                ps.setInt(6, premio.getIdProducto());
-                ps.setNull(7, java.sql.Types.INTEGER);
-            } else {
-                ps.setNull(6, java.sql.Types.INTEGER);
-                ps.setInt(7, premio.getIdMenu());
-            }
-
-            return ps.executeUpdate() > 0;
-
-        } catch (Exception e) {
-            System.out.println("Error al guardar premio: " + e.getMessage());
-            return false;
-        }
-    }
 }

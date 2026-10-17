@@ -6,8 +6,6 @@ import controller.VentaController;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.util.ArrayList;
-import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -24,6 +22,7 @@ import model.Cliente;
 import model.ItemVenta;
 import model.Menu;
 import model.MenuVenta;
+import model.Pedido;
 import model.Producto;
 import model.ProductoVenta;
 
@@ -31,7 +30,7 @@ public class FrmVenta extends JFrame {
     private final VentaController ventaController = new VentaController();
     private final ProductoController productoController = new ProductoController();
     private final MenuController menuController = new MenuController();
-    private final List<ItemVenta> carrito = new ArrayList<>();
+    private final Pedido pedido = new Pedido();
     private JTextField txtIdCliente;
     private JLabel lblCliente;
     private JComboBox<String> cboTipo;
@@ -43,10 +42,16 @@ public class FrmVenta extends JFrame {
     private JTable tabla;
     private DefaultTableModel modelo;
     private Cliente cliente;
+    private static final String TEXTO_SIN_CLIENTE = "Escribe el ID del cliente o presiona \"Elegir o registrar cliente\".";
 
     public FrmVenta() {
         construirInterfaz();
         actualizarCatalogo();
+    }
+
+    public FrmVenta(Cliente cliente) {
+        this();
+        asignarCliente(cliente);
     }
 
     private void construirInterfaz() {
@@ -65,10 +70,12 @@ public class FrmVenta extends JFrame {
         datosCliente.setBorder(BorderFactory.createTitledBorder("Cliente"));
         txtIdCliente = new JTextField(8);
         JButton btnBuscarCliente = new JButton("Buscar cliente");
-        lblCliente = new JLabel("Ingresa el ID del cliente para consultar sus puntos.");
-        datosCliente.add(new JLabel("ID:") );
+        JButton btnElegirCliente = new JButton("Elegir o registrar cliente");
+        lblCliente = new JLabel(TEXTO_SIN_CLIENTE);
+        datosCliente.add(new JLabel("ID:"));
         datosCliente.add(txtIdCliente);
         datosCliente.add(btnBuscarCliente);
+        datosCliente.add(btnElegirCliente);
         datosCliente.add(lblCliente);
 
         JPanel selector = new JPanel(new GridLayout(2, 4, 8, 8));
@@ -128,6 +135,7 @@ public class FrmVenta extends JFrame {
 
         cboTipo.addActionListener(e -> actualizarCatalogo());
         btnBuscarCliente.addActionListener(e -> buscarCliente());
+        btnElegirCliente.addActionListener(e -> abrirSelectorClientes());
         btnAgregar.addActionListener(e -> agregarArticulo());
         btnQuitar.addActionListener(e -> quitarArticulo());
         btnLimpiar.addActionListener(e -> limpiarCarrito());
@@ -149,7 +157,23 @@ public class FrmVenta extends JFrame {
         }
     }
 
+    private void abrirSelectorClientes() {
+        Navegacion.abrir(this, new FrmClientes(this::asignarCliente));
+    }
+
+    private void asignarCliente(Cliente seleccionado) {
+        cliente = seleccionado;
+        txtIdCliente.setText(String.valueOf(seleccionado.getIdCliente()));
+        lblCliente.setText(seleccionado.getNombre() + " | Puntos disponibles: " + seleccionado.getPuntos());
+        toFront();
+    }
+
     private void buscarCliente() {
+        if (txtIdCliente.getText().trim().isEmpty()) {
+            cliente = null;
+            abrirSelectorClientes();
+            return;
+        }
         try {
             int id = Integer.parseInt(txtIdCliente.getText().trim());
             cliente = ventaController.buscarClienteActivo(id);
@@ -179,7 +203,7 @@ public class FrmVenta extends JFrame {
             } else {
                 item = new MenuVenta((Menu) seleccionado, cantidad);
             }
-            carrito.add(item);
+            pedido.agregarDetalle(item);
             actualizarTabla();
             txtCantidad.setText("1");
         } catch (NumberFormatException e) {
@@ -191,18 +215,13 @@ public class FrmVenta extends JFrame {
 
     private void actualizarTabla() {
         modelo.setRowCount(0);
-        double total = 0;
-        int puntos = 0;
-        for (ItemVenta item : carrito) {
-            double subtotal = item.getPrecioUnitario() * item.getCantidad();
-            total += subtotal;
-            puntos += item.calcularPuntos();
+        for (ItemVenta item : pedido.getDetalles()) {
             modelo.addRow(new Object[]{item.getTipo(), item.getNombre(), item.getCantidad(),
-                String.format("%.2f", item.getPrecioUnitario()), String.format("%.2f", subtotal),
+                String.format("%.2f", item.getPrecioUnitario()), String.format("%.2f", item.calcularSubtotal()),
                 item.calcularPuntos()});
         }
-        lblTotal.setText(String.format("Total: Q%.2f", total));
-        lblPuntos.setText("Puntos que se acreditarán al pagar: " + puntos);
+        lblTotal.setText(String.format("Total: Q%.2f", pedido.calcularTotal()));
+        lblPuntos.setText("Puntos que se acreditarán al pagar: " + pedido.calcularPuntos());
     }
 
     private void quitarArticulo() {
@@ -211,15 +230,15 @@ public class FrmVenta extends JFrame {
             JOptionPane.showMessageDialog(this, "Selecciona un artículo de la tabla.");
             return;
         }
-        carrito.remove(fila);
+        pedido.quitarDetalle(fila);
         actualizarTabla();
     }
 
     private void limpiarCarrito() {
-        carrito.clear();
+        pedido.limpiarDetalles();
         cliente = null;
         txtIdCliente.setText("");
-        lblCliente.setText("Ingresa el ID del cliente para consultar sus puntos.");
+        lblCliente.setText(TEXTO_SIN_CLIENTE);
         actualizarTabla();
     }
 
@@ -228,11 +247,12 @@ public class FrmVenta extends JFrame {
         if (cliente == null) {
             return;
         }
-        if (carrito.isEmpty()) {
+        if (!pedido.tieneDetalles()) {
             JOptionPane.showMessageDialog(this, "Agrega al menos un artículo al pedido.");
             return;
         }
-        int idPedido = ventaController.crearPedido(cliente.getIdCliente(), carrito);
+        pedido.setIdCliente(cliente.getIdCliente());
+        int idPedido = ventaController.crearPedido(pedido);
         if (idPedido <= 0) {
             JOptionPane.showMessageDialog(this,
                     "No se pudo crear el pedido. Revisa existencias, productos activos y menús completos.",
@@ -241,9 +261,7 @@ public class FrmVenta extends JFrame {
         }
         String metodo = cboMetodo.getSelectedItem().toString();
         limpiarCarrito();
-        FrmPago pago = new FrmPago(idPedido, metodo);
-        pago.setVisible(true);
-        dispose();
+        Navegacion.reemplazar(this, new FrmPago(idPedido, metodo));
     }
 
     public static void main(String[] args) {

@@ -2,9 +2,8 @@ package controller;
 
 import dao.ClienteDAO;
 import dao.VentaDAO;
-import java.util.List;
 import model.Cliente;
-import model.ItemVenta;
+import model.Pedido;
 
 public class VentaController {
     private final VentaDAO ventaDAO = new VentaDAO();
@@ -14,7 +13,14 @@ public class VentaController {
         return clienteDAO.buscarPorId(idCliente);
     }
 
-    public int crearPedido(int idCliente, List<ItemVenta> items) {
-        return ventaDAO.crearPedido(idCliente, items);
+    public int crearPedido(Pedido pedido) {
+        if (pedido == null || !pedido.tieneDetalles()) {
+            return -1;
+        }
+        int idPedido = ventaDAO.crearPedido(pedido.getIdCliente(), pedido.getDetalles());
+        if (idPedido > 0) {
+            pedido.setIdPedido(idPedido);
+        }
+        return idPedido;
     }
 }

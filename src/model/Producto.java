@@ -1,13 +1,5 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
-/**
- *
- * @author eduar
- */
 public class Producto {
     private int idProducto;
     private String codigo;
@@ -15,7 +7,8 @@ public class Producto {
     private double precio;
     private int existencia;
     private String nombre;
-    private boolean activo;     
+    private boolean activo;
+    private String tipoCategoria = "EXTRA";
     
     public Producto() {
     this.existencia = 0;
@@ -93,5 +86,12 @@ public Producto(int idProducto, String codigo, String categoria, String nombre, 
         return nombre + " — Q" + String.format("%.2f", precio)
                 + " (stock: " + existencia + ")";
     }
-    
+
+    public String getTipoCategoria() {
+        return tipoCategoria;
+    }
+
+    public void setTipoCategoria(String tipoCategoria) {
+        this.tipoCategoria = tipoCategoria;
+    }
 }

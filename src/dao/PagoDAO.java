@@ -209,10 +209,11 @@ private boolean acreditarPuntos(Connection cn, int idPedido) throws Exception {
     String sqlPuntos =
             "SELECT PE.ID_CLIENTE, "
             + "NVL((SELECT SUM(CASE "
-            + "WHEN UPPER(PR.CATEGORIA) = 'SANDWICH' "
+            + "WHEN CA.TIPO = 'COMIDA' "
             + "THEN DP.CANTIDAD * 2 ELSE 0 END) "
             + "FROM DETALLE_PEDIDO DP "
             + "JOIN PRODUCTOS PR ON PR.ID_PRODUCTO = DP.ID_PRODUCTO "
+            + "LEFT JOIN CATEGORIAS CA ON CA.NOMBRE = PR.CATEGORIA "
             + "WHERE DP.ID_PEDIDO = PE.ID_PEDIDO), 0) "
             + "+ NVL((SELECT SUM(DPM.CANTIDAD * 8) "
             + "FROM DETALLE_PEDIDO_MENU DPM "
@@ -301,87 +302,38 @@ private boolean acreditarPuntos(Connection cn, int idPedido) throws Exception {
 
         return pagos;
     }
-    
-    public boolean verificarPedidoParaCobro(int idPedido) {
 
-        if (idPedido <= 0) {
-            return false;
-        }
-
-        String sqlPedido =
-                "SELECT ID_PEDIDO, TOTAL "
-                + "FROM PEDIDOS "
-                + "WHERE ID_PEDIDO = ? "
-                + "AND ESTADO = 'PENDIENTE' "
-                + "FOR UPDATE";
-
-        String sqlDetalles =
-        "SELECT (SELECT COUNT(*) FROM DETALLE_PEDIDO "
-        + "WHERE ID_PEDIDO = ?) + "
-        +"(SELECT COUNT(*) FROM DETALLE_PEDIDO_MENU "
-        + "WHERE ID_PEDIDO = ?) AS CANTIDAD FROM DUAL";
-
-        try (Connection cn = Conexion.conectar()) {
-
-            cn.setAutoCommit(false);
-
-            try {
-                double total;
-
-                // Verificar que el pedido esté pendiente.
-                try (PreparedStatement ps =
-                        cn.prepareStatement(sqlPedido)) {
-
-                    ps.setInt(1, idPedido);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) {
-                            cn.rollback();
-                            return false;
-                        }
-
-                        total = rs.getDouble("TOTAL");
-
-                        if (total <= 0) {
-                            cn.rollback();
-                            return false;
-                        }
+    public List<String> listarFaltantesInventario(int idPedido) {
+        List<String> faltantes = new ArrayList<>();
+        String sql = "SELECT P.NOMBRE, P.EXISTENCIA, P.ACTIVO, R.REQUERIDO "
+                + "FROM (SELECT ID_PRODUCTO, SUM(CANTIDAD) REQUERIDO FROM ("
+                + "SELECT ID_PRODUCTO, CANTIDAD FROM DETALLE_PEDIDO WHERE ID_PEDIDO = ? "
+                + "UNION ALL "
+                + "SELECT DM.ID_PRODUCTO, DPM.CANTIDAD * DM.CANTIDAD "
+                + "FROM DETALLE_PEDIDO_MENU DPM "
+                + "JOIN DETALLE_MENU DM ON DM.ID_MENU = DPM.ID_MENU "
+                + "WHERE DPM.ID_PEDIDO = ?"
+                + ") GROUP BY ID_PRODUCTO) R "
+                + "JOIN PRODUCTOS P ON P.ID_PRODUCTO = R.ID_PRODUCTO "
+                + "WHERE P.EXISTENCIA < R.REQUERIDO OR P.ACTIVO <> 1 "
+                + "ORDER BY P.NOMBRE";
+        try (Connection cn = Conexion.conectar();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, idPedido);
+            ps.setInt(2, idPedido);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    if (rs.getInt("ACTIVO") != 1) {
+                        faltantes.add(rs.getString("NOMBRE") + ": producto desactivado");
+                    } else {
+                        faltantes.add(rs.getString("NOMBRE") + ": disponible "
+                                + rs.getInt("EXISTENCIA") + ", requerido " + rs.getInt("REQUERIDO"));
                     }
                 }
-
-                // Verificar que el pedido tenga detalles.
-                try (PreparedStatement ps =
-                        cn.prepareStatement(sqlDetalles)) {
-
-                    ps.setInt(1, idPedido);
-                    ps.setInt(2, idPedido);
-
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()
-                                || rs.getInt("CANTIDAD") == 0) {
-                            cn.rollback();
-                            return false;
-                        }
-                    }
-                }
-
-                cn.commit();
-                return true;
-
-            } catch (Exception e) {
-                cn.rollback();
-                throw e;
-
-            } finally {
-                cn.setAutoCommit(true);
             }
-
         } catch (Exception e) {
-            System.out.println(
-                    "Error al verificar pedido para cobro: "
-                    + e.getMessage()
-            );
-            return false;
+            System.out.println("Error al verificar inventario: " + e.getMessage());
         }
+        return faltantes;
     }
-
 }

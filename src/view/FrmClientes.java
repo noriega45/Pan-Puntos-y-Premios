@@ -27,14 +27,20 @@ public class FrmClientes extends JFrame {
     private JTextField txtIdBuscar;
     private JTable tblClientes;
     private int idSeleccionado;
+    private final java.util.function.Consumer<Cliente> alSeleccionar;
 
     public FrmClientes() {
+        this(null);
+    }
+
+    public FrmClientes(java.util.function.Consumer<Cliente> alSeleccionar) {
+        this.alSeleccionar = alSeleccionar;
         construirInterfaz();
         cargarClientes();
     }
 
     private void construirInterfaz() {
-        setTitle("Gestión de clientes");
+        setTitle(alSeleccionar == null ? "Gestión de clientes" : "Seleccionar cliente para la venta");
         setSize(850, 560);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -82,7 +88,9 @@ public class FrmClientes extends JFrame {
         JButton btnPedidos = new JButton("Historial de pedidos");
         JButton btnPuntos = new JButton("Movimientos de puntos");
         JButton btnLimpiar = new JButton("Limpiar");
+        JButton btnSeleccionar = new JButton("Seleccionar cliente");
         JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        acciones.add(btnSeleccionar);
         acciones.add(btnBuscar);
         acciones.add(btnGuardar);
         acciones.add(btnEditar);
@@ -102,6 +110,35 @@ public class FrmClientes extends JFrame {
         btnPedidos.addActionListener(e -> mostrarHistorialPedidos());
         btnPuntos.addActionListener(e -> mostrarMovimientosPuntos());
         btnLimpiar.addActionListener(e -> limpiar());
+        btnSeleccionar.addActionListener(e -> seleccionarCliente());
+    }
+
+    private void seleccionarCliente() {
+        if (idSeleccionado <= 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente de la tabla o búscalo por ID.");
+            return;
+        }
+        Cliente cliente = controller.buscarCliente(idSeleccionado);
+        if (cliente == null) {
+            JOptionPane.showMessageDialog(this, "El cliente seleccionado no existe o no está activo.");
+            return;
+        }
+        if (alSeleccionar != null) {
+            alSeleccionar.accept(cliente);
+            dispose();
+        } else {
+            Navegacion.reemplazar(this, new FrmVenta(cliente));
+        }
+    }
+
+    private void seleccionarUltimoCliente() {
+        int ultima = modelo.getRowCount() - 1;
+        if (ultima < 0) {
+            return;
+        }
+        int filaVista = tblClientes.convertRowIndexToView(ultima);
+        tblClientes.setRowSelectionInterval(filaVista, filaVista);
+        tblClientes.scrollRectToVisible(tblClientes.getCellRect(filaVista, 0, true));
     }
 
     private void cargarClientes() {
@@ -132,17 +169,34 @@ public class FrmClientes extends JFrame {
             JOptionPane.showMessageDialog(this, "El nombre del cliente es obligatorio.");
             return;
         }
+        if (esDuplicado(0)) {
+            return;
+        }
         Cliente cliente = new Cliente(0, nombre, null,
                 txtTelefono.getText().trim(), txtCorreo.getText().trim());
         if (controller.guardarCliente(cliente)) {
-            JOptionPane.showMessageDialog(this, "Cliente registrado correctamente.");
             limpiar();
             cargarClientes();
+            seleccionarUltimoCliente();
+            JOptionPane.showMessageDialog(this, "Cliente registrado correctamente con ID " + idSeleccionado + "."
+                    + (alSeleccionar != null ? "\nPresiona \"Seleccionar cliente\" para usarlo en la venta." : ""));
         } else {
             JOptionPane.showMessageDialog(this,
                     "No se pudo registrar el cliente. Revisa la conexión y los datos.",
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private boolean esDuplicado(int idExcluir) {
+        int duplicado = controller.buscarClienteDuplicado(
+                txtTelefono.getText().trim(), txtCorreo.getText().trim(), idExcluir);
+        if (duplicado > 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Ya existe un cliente registrado con ese teléfono y correo (ID " + duplicado + ").",
+                    "Cliente ya registrado", JOptionPane.WARNING_MESSAGE);
+            return true;
+        }
+        return false;
     }
 
     private void actualizar() {
@@ -153,6 +207,9 @@ public class FrmClientes extends JFrame {
         String nombre = txtNombre.getText().trim();
         if (nombre.isEmpty()) {
             JOptionPane.showMessageDialog(this, "El nombre del cliente es obligatorio.");
+            return;
+        }
+        if (esDuplicado(idSeleccionado)) {
             return;
         }
         Cliente cliente = new Cliente(idSeleccionado, nombre, null,

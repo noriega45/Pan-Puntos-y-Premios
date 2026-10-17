@@ -1,7 +1,9 @@
 
 package view;
 
+import controller.CategoriaController;
 import controller.ProductoController;
+import model.Categoria;
 import model.Producto;
 
 import javax.swing.*;
@@ -12,10 +14,11 @@ import java.util.List;
 public class FrmProductosCodigo extends JFrame {
 
     private final ProductoController controller = new ProductoController();
+    private final CategoriaController categoriaController = new CategoriaController();
 
     private JTextField txtCodigo;
     private JTextField txtNombre;
-    private JTextField txtCategoria;
+    private JComboBox<String> cboCategoria;
     private JTextField txtPrecio;
     private JTextField txtExistencia;
 
@@ -55,13 +58,14 @@ public class FrmProductosCodigo extends JFrame {
         txtCodigo = new JTextField(18);
         txtCodigo.setEditable(false);
         txtNombre = new JTextField(18);
-        txtCategoria = new JTextField(18);
+        cboCategoria = new JComboBox<>();
+        cargarCategorias();
         txtPrecio = new JTextField(18);
         txtExistencia = new JTextField(18);
 
         agregarCampo(formulario, gbc, 0, "Código:", txtCodigo);
         agregarCampo(formulario, gbc, 1, "Nombre:", txtNombre);
-        agregarCampo(formulario, gbc, 2, "Categoría:", txtCategoria);
+        agregarCampo(formulario, gbc, 2, "Categoría:", cboCategoria);
         agregarCampo(formulario, gbc, 3, "Precio (Q):", txtPrecio);
         agregarCampo(formulario, gbc, 4, "Existencia:", txtExistencia);
 
@@ -116,11 +120,47 @@ public class FrmProductosCodigo extends JFrame {
                 seleccionarProducto();
             }
         });
+
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowActivated(java.awt.event.WindowEvent e) {
+                cargarCategorias();
+            }
+        });
+    }
+
+    private void cargarCategorias() {
+        Object actual = cboCategoria.getSelectedItem();
+        cboCategoria.removeAllItems();
+        for (Categoria categoria : categoriaController.listarCategorias()) {
+            cboCategoria.addItem(categoria.getNombre());
+        }
+        if (actual != null) {
+            seleccionarCategoria(actual.toString());
+        } else {
+            cboCategoria.setSelectedIndex(-1);
+        }
+    }
+
+    private void seleccionarCategoria(String nombre) {
+        for (int i = 0; i < cboCategoria.getItemCount(); i++) {
+            if (cboCategoria.getItemAt(i).equalsIgnoreCase(nombre)) {
+                cboCategoria.setSelectedIndex(i);
+                return;
+            }
+        }
+        cboCategoria.addItem(nombre);
+        cboCategoria.setSelectedItem(nombre);
+    }
+
+    private String categoriaSeleccionada() {
+        Object seleccion = cboCategoria.getSelectedItem();
+        return seleccion == null ? "" : seleccion.toString();
     }
 
     private void agregarCampo(
             JPanel panel, GridBagConstraints gbc,
-            int fila, String etiqueta, JTextField campo) {
+            int fila, String etiqueta, JComponent campo) {
 
         gbc.gridwidth = 1;
         gbc.gridx = 0;
@@ -156,14 +196,22 @@ public class FrmProductosCodigo extends JFrame {
         try {
             String codigo = txtCodigo.getText().trim();
             String nombre = txtNombre.getText().trim();
-            String categoria = txtCategoria.getText().trim();
+            String categoria = categoriaSeleccionada();
             String precioTexto = txtPrecio.getText().trim();
             String existenciaTexto = txtExistencia.getText().trim();
+
+            if (cboCategoria.getItemCount() == 0) {
+                JOptionPane.showMessageDialog(
+                    this, "No hay categorías registradas. Registra una en el módulo Categorías.",
+                    "Validación", JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
 
             if (nombre.isEmpty() || categoria.isEmpty()
                 || precioTexto.isEmpty() || existenciaTexto.isEmpty()) {
                 JOptionPane.showMessageDialog(
-                    this, "Completa todos los campos.",
+                    this, "Completa todos los campos y elige una categoría.",
                     "Validación", JOptionPane.WARNING_MESSAGE
                 );
                 return;
@@ -189,7 +237,7 @@ public class FrmProductosCodigo extends JFrame {
                 cargarProductos();
             } else {
                 JOptionPane.showMessageDialog(
-                    this, "No se pudo guardar. Verifica que el código no exista.",
+                    this, "No se pudo guardar el producto. Verifica que la categoría esté activa.",
                     "Error", JOptionPane.ERROR_MESSAGE
                 );
             }
@@ -200,7 +248,6 @@ public class FrmProductosCodigo extends JFrame {
             );
         }
     }
-
 
         private void seleccionarProducto() {
             int filaVista = tblProductos.getSelectedRow();
@@ -218,11 +265,12 @@ public class FrmProductosCodigo extends JFrame {
 
             txtCodigo.setText(modelo.getValueAt(fila, 1).toString());
             txtNombre.setText(modelo.getValueAt(fila, 2).toString());
-            txtCategoria.setText(modelo.getValueAt(fila, 3).toString());
+            seleccionarCategoria(modelo.getValueAt(fila, 3).toString());
             txtPrecio.setText(modelo.getValueAt(fila, 4).toString());
             txtExistencia.setText(modelo.getValueAt(fila, 5).toString());
+            txtExistencia.setEditable(false);
+            txtExistencia.setToolTipText("Para cambiar la existencia usa el módulo Abastecimientos.");
         }
-
 
     private void editarProducto() {
         if (idSeleccionado == 0) {
@@ -233,7 +281,7 @@ public class FrmProductosCodigo extends JFrame {
         try {
             String codigo = txtCodigo.getText().trim();
             String nombre = txtNombre.getText().trim();
-            String categoria = txtCategoria.getText().trim();
+            String categoria = categoriaSeleccionada();
             String precioTexto = txtPrecio.getText().trim();
             String existenciaTexto = txtExistencia.getText().trim();
 
@@ -263,7 +311,7 @@ public class FrmProductosCodigo extends JFrame {
                 cargarProductos();
             } else {
                 JOptionPane.showMessageDialog(
-                    this, "No se pudo actualizar. Verifica el código del producto.",
+                    this, "No se pudo actualizar el producto. Verifica que la categoría esté activa.",
                     "Error", JOptionPane.ERROR_MESSAGE
                 );
             }
@@ -305,13 +353,15 @@ public class FrmProductosCodigo extends JFrame {
     private void limpiarFormulario() {
         txtCodigo.setText("");
         txtNombre.setText("");
-        txtCategoria.setText("");
+        cboCategoria.setSelectedIndex(-1);
+        txtExistencia.setEditable(true);
+        txtExistencia.setToolTipText(null);
         txtPrecio.setText("");
         txtExistencia.setText("");
 
         idSeleccionado = 0;
         tblProductos.clearSelection();
-        txtCodigo.requestFocus();
+        txtNombre.requestFocus();
     }
 
     public static void main(String[] args) {

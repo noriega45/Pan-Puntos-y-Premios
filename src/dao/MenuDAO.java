@@ -27,21 +27,22 @@ public class MenuDAO {
                         return false;
                     }
                     try (PreparedStatement ps = cn.prepareStatement(
-                            "SELECT CATEGORIA FROM PRODUCTOS WHERE ID_PRODUCTO = ? AND ACTIVO = 1")) {
+                            "SELECT C.TIPO FROM PRODUCTOS P JOIN CATEGORIAS C ON C.NOMBRE = P.CATEGORIA "
+                            + "WHERE P.ID_PRODUCTO = ? AND P.ACTIVO = 1")) {
                         ps.setInt(1, componente.getKey());
                         try (ResultSet rs = ps.executeQuery()) {
                             if (!rs.next()) {
                                 cn.rollback();
                                 return false;
                             }
-                            String categoria = rs.getString("CATEGORIA").toUpperCase();
-                            if (java.util.Arrays.asList("SANDWICH", "BEBIDA", "ACOMPAÑAMIENTO").contains(categoria)) {
+                            String categoria = rs.getString("TIPO");
+                            if (java.util.Arrays.asList("COMIDA", "BEBIDA", "ACOMPANAMIENTO").contains(categoria)) {
                                 categorias.add(categoria);
                             }
                         }
                     }
                 }
-                if (!categorias.containsAll(java.util.Arrays.asList("SANDWICH", "BEBIDA", "ACOMPAÑAMIENTO"))) {
+                if (!categorias.containsAll(java.util.Arrays.asList("COMIDA", "BEBIDA", "ACOMPANAMIENTO"))) {
                     cn.rollback();
                     return false;
                 }
@@ -91,10 +92,12 @@ public class MenuDAO {
         String sql = "SELECT M.ID_MENU, M.NOMBRE, M.PRECIO FROM MENUS M "
                 + "WHERE M.ACTIVO = 1 AND EXISTS ("
                 + "SELECT 1 FROM DETALLE_MENU DM JOIN PRODUCTOS P "
-                + "ON P.ID_PRODUCTO = DM.ID_PRODUCTO WHERE DM.ID_MENU = M.ID_MENU "
+                + "ON P.ID_PRODUCTO = DM.ID_PRODUCTO "
+                + "JOIN CATEGORIAS C ON C.NOMBRE = P.CATEGORIA "
+                + "WHERE DM.ID_MENU = M.ID_MENU "
                 + "GROUP BY DM.ID_MENU HAVING COUNT(DISTINCT CASE "
-                + "WHEN UPPER(P.CATEGORIA) IN ('SANDWICH','BEBIDA','ACOMPAÑAMIENTO') "
-                + "THEN UPPER(P.CATEGORIA) END) = 3) ORDER BY M.NOMBRE";
+                + "WHEN C.TIPO IN ('COMIDA','BEBIDA','ACOMPANAMIENTO') "
+                + "THEN C.TIPO END) = 3) ORDER BY M.NOMBRE";
 
         try (Connection cn = Conexion.conectar();
              PreparedStatement ps = cn.prepareStatement(sql);

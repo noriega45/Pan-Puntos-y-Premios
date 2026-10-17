@@ -1,4 +1,3 @@
-
 package view;
 
 import controller.AbastecimientoController;
@@ -9,7 +8,11 @@ import model.Proveedor;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FrmAbastecimientos extends JFrame {
 
@@ -19,14 +22,15 @@ public class FrmAbastecimientos extends JFrame {
     private final ProveedorController proveedorController =
             new ProveedorController();
 
+    private final Map<Integer, String> nombresProveedores = new HashMap<>();
+
     private JComboBox<ProveedorItem> cboProveedor;
-    private JTextField txtTotal;
     private JTable tblAbastecimientos;
     private DefaultTableModel modeloTabla;
 
     public FrmAbastecimientos() {
         setTitle("Gestión de Abastecimientos");
-        setSize(800, 500);
+        setSize(820, 520);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -40,7 +44,7 @@ public class FrmAbastecimientos extends JFrame {
 
         JPanel panelFormulario = new JPanel(new GridBagLayout());
         panelFormulario.setBorder(
-                BorderFactory.createTitledBorder("Registrar abastecimiento"));
+                BorderFactory.createTitledBorder("Nuevo abastecimiento"));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(6, 6, 6, 6);
@@ -55,33 +59,19 @@ public class FrmAbastecimientos extends JFrame {
         gbc.weightx = 1;
         panelFormulario.add(cboProveedor, gbc);
 
+        JButton btnGuardar = new JButton("Registrar abastecimiento");
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        panelFormulario.add(btnGuardar, gbc);
+
+        JLabel ayuda = new JLabel("Al registrarlo se abre la ventana para agregar los productos recibidos.");
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.weightx = 0;
-        panelFormulario.add(new JLabel("Total inicial (Q):"), gbc);
-
-        txtTotal = new JTextField("0.00");
-        gbc.gridx = 1;
-        gbc.weightx = 1;
-        panelFormulario.add(txtTotal, gbc);
-
-        JButton btnGuardar = new JButton("Registrar abastecimiento");
-        JButton btnLimpiar = new JButton("Limpiar");
-        JButton btnActualizar = new JButton("Actualizar lista");
-
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        panelBotones.add(btnGuardar);
-        panelBotones.add(btnLimpiar);
-        panelBotones.add(btnActualizar);
-
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1;
-        panelFormulario.add(panelBotones, gbc);
+        gbc.gridwidth = 3;
+        panelFormulario.add(ayuda, gbc);
 
         modeloTabla = new DefaultTableModel(
-                new Object[]{"ID", "ID Proveedor", "Fecha", "Total (Q)"},
+                new Object[]{"ID", "Proveedor", "Fecha", "Total (Q)"},
                 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -90,25 +80,39 @@ public class FrmAbastecimientos extends JFrame {
         };
 
         tblAbastecimientos = new JTable(modeloTabla);
+        tblAbastecimientos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JScrollPane scroll = new JScrollPane(tblAbastecimientos);
         scroll.setBorder(
                 BorderFactory.createTitledBorder("Abastecimientos registrados"));
 
+        JButton btnDetalle = new JButton("Ver / agregar productos");
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        panelBotones.add(btnDetalle);
+
         add(panelFormulario, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
+        add(panelBotones, BorderLayout.SOUTH);
 
         btnGuardar.addActionListener(e -> guardarAbastecimiento());
-        btnLimpiar.addActionListener(e -> limpiarFormulario());
-        btnActualizar.addActionListener(e -> cargarAbastecimientos());
+        btnDetalle.addActionListener(e -> abrirDetalleSeleccionado());
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowActivated(WindowEvent e) {
+                cargarAbastecimientos();
+            }
+        });
     }
 
     private void cargarProveedores() {
         cboProveedor.removeAllItems();
+        nombresProveedores.clear();
 
         List<Proveedor> proveedores =
                 proveedorController.listarProveedores();
 
         for (Proveedor proveedor : proveedores) {
+            nombresProveedores.put(proveedor.getIdProveedor(), proveedor.getNombre());
             if (proveedor.isActivo()) {
                 cboProveedor.addItem(new ProveedorItem(
                         proveedor.getIdProveedor(),
@@ -118,6 +122,7 @@ public class FrmAbastecimientos extends JFrame {
     }
 
     private void cargarAbastecimientos() {
+        int idSeleccionado = idSeleccionado();
         modeloTabla.setRowCount(0);
 
         List<Abastecimiento> lista =
@@ -126,11 +131,23 @@ public class FrmAbastecimientos extends JFrame {
         for (Abastecimiento a : lista) {
             modeloTabla.addRow(new Object[]{
                 a.getIdAbastecimiento(),
-                a.getIdProveedor(),
+                a.getIdProveedor() + " - " + nombresProveedores.getOrDefault(a.getIdProveedor(), ""),
                 a.getFecha(),
                 String.format("%.2f", a.getTotal())
             });
         }
+
+        for (int i = 0; i < modeloTabla.getRowCount(); i++) {
+            if ((int) modeloTabla.getValueAt(i, 0) == idSeleccionado) {
+                tblAbastecimientos.setRowSelectionInterval(i, i);
+                break;
+            }
+        }
+    }
+
+    private int idSeleccionado() {
+        int fila = tblAbastecimientos.getSelectedRow();
+        return fila < 0 ? 0 : (int) modeloTabla.getValueAt(fila, 0);
     }
 
     private void guardarAbastecimiento() {
@@ -139,50 +156,34 @@ public class FrmAbastecimientos extends JFrame {
 
         if (proveedor == null) {
             JOptionPane.showMessageDialog(
-                    this, "Primero debes registrar un proveedor activo.");
+                    this, "Primero registra un proveedor activo en el módulo Proveedores.");
             return;
         }
 
-        try {
-            double total = Double.parseDouble(
-                    txtTotal.getText().trim());
+        Abastecimiento abastecimiento = new Abastecimiento();
+        abastecimiento.setIdProveedor(proveedor.id);
+        abastecimiento.setTotal(0);
 
-            if (!Double.isFinite(total) || total < 0) {
-                JOptionPane.showMessageDialog(
-                        this, "El total debe ser un número válido no negativo.");
-                return;
-            }
-
-            Abastecimiento abastecimiento = new Abastecimiento();
-            abastecimiento.setIdProveedor(proveedor.id);
-            abastecimiento.setTotal(total);
-
-            boolean guardado =
-                    abastecimientoController.guardarAbastecimiento(abastecimiento);
-
-            if (guardado) {
-                JOptionPane.showMessageDialog(
-                        this, "Abastecimiento registrado correctamente.");
-
-                limpiarFormulario();
-                cargarAbastecimientos();
-            } else {
-                JOptionPane.showMessageDialog(
-                        this, "No se pudo registrar el abastecimiento.");
-            }
-
-        } catch (NumberFormatException e) {
+        if (abastecimientoController.guardarAbastecimiento(abastecimiento)) {
+            cargarAbastecimientos();
+            Navegacion.abrir(this, new FrmDetalleAbastecimiento(
+                    abastecimiento.getIdAbastecimiento(), proveedor.toString()));
+        } else {
             JOptionPane.showMessageDialog(
-                    this, "Ingresa un total numérico válido.");
+                    this, "No se pudo registrar el abastecimiento.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void limpiarFormulario() {
-        txtTotal.setText("0.00");
-
-        if (cboProveedor.getItemCount() > 0) {
-            cboProveedor.setSelectedIndex(0);
+    private void abrirDetalleSeleccionado() {
+        int fila = tblAbastecimientos.getSelectedRow();
+        if (fila < 0) {
+            JOptionPane.showMessageDialog(this, "Selecciona un abastecimiento de la tabla.");
+            return;
         }
+        int id = (int) modeloTabla.getValueAt(fila, 0);
+        String proveedor = modeloTabla.getValueAt(fila, 1).toString();
+        Navegacion.abrir(this, new FrmDetalleAbastecimiento(id, proveedor));
     }
 
     private static class ProveedorItem {
@@ -204,51 +205,4 @@ public class FrmAbastecimientos extends JFrame {
         SwingUtilities.invokeLater(() ->
                 new FrmAbastecimientos().setVisible(true));
     }
-    
-public java.util.List<model.DetalleAbastecimiento> listarPorAbastecimiento(
-        int idAbastecimiento) {
-
-    java.util.List<model.DetalleAbastecimiento> detalles =
-            new java.util.ArrayList<>();
-
-    if (idAbastecimiento <= 0) {
-        return detalles;
-    }
-
-    String sql = "SELECT ID_DETALLE, ID_ABASTECIMIENTO, "
-            + "ID_PRODUCTO, CANTIDAD, COSTO_UNITARIO "
-            + "FROM DETALLE_ABASTECIMIENTO "
-            + "WHERE ID_ABASTECIMIENTO = ? "
-            + "ORDER BY ID_DETALLE";
-
-    try (java.sql.Connection cn = util.Conexion.conectar();
-         java.sql.PreparedStatement ps = cn.prepareStatement(sql)) {
-
-        ps.setInt(1, idAbastecimiento);
-
-        try (java.sql.ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                model.DetalleAbastecimiento detalle =
-                        new model.DetalleAbastecimiento(
-                                rs.getInt("ID_DETALLE"),
-                                rs.getInt("ID_ABASTECIMIENTO"),
-                                rs.getInt("ID_PRODUCTO"),
-                                rs.getInt("CANTIDAD"),
-                                rs.getDouble("COSTO_UNITARIO")
-                        );
-
-                detalles.add(detalle);
-            }
-        }
-
-    } catch (Exception e) {
-        System.out.println(
-                "Error al listar detalles de abastecimiento: "
-                + e.getMessage()
-        );
-    }
-
-    return detalles;
-}
-   
 }

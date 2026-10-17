@@ -40,7 +40,6 @@ public class DetalleAbastecimientoDAO {
             cn.setAutoCommit(false);
 
             try {
-                // 1. Verificar que exista el abastecimiento.
                 String sqlExiste = "SELECT ID_ABASTECIMIENTO "
                         + "FROM ABASTECIMIENTOS "
                         + "WHERE ID_ABASTECIMIENTO = ? "
@@ -57,7 +56,6 @@ public class DetalleAbastecimientoDAO {
                     }
                 }
 
-                // 2. Registrar el detalle.
                 try (PreparedStatement ps = cn.prepareStatement(sqlDetalle)) {
                     ps.setInt(1, detalle.getIdAbastecimiento());
                     ps.setInt(2, detalle.getIdProducto());
@@ -70,7 +68,6 @@ public class DetalleAbastecimientoDAO {
                     }
                 }
 
-                // 3. Aumentar las existencias del producto activo.
                 try (PreparedStatement ps = cn.prepareStatement(sqlInventario)) {
                     ps.setInt(1, detalle.getCantidad());
                     ps.setInt(2, detalle.getIdProducto());
@@ -91,7 +88,6 @@ public class DetalleAbastecimientoDAO {
                     ps.executeUpdate();
                 }
 
-                // 4. Recalcular el total del abastecimiento.
                 try (PreparedStatement ps = cn.prepareStatement(sqlTotal)) {
                     ps.setInt(1, detalle.getIdAbastecimiento());
                     ps.setInt(2, detalle.getIdAbastecimiento());

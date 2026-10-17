@@ -3,7 +3,6 @@ package dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +42,9 @@ public class VentaDAO {
                     }
                     if (item instanceof ProductoVenta) {
                         double precio;
-                        String categoria;
                         int existencia;
                         try (PreparedStatement ps = cn.prepareStatement(
-                                "SELECT PRECIO, CATEGORIA, EXISTENCIA FROM PRODUCTOS "
+                                "SELECT PRECIO, EXISTENCIA FROM PRODUCTOS "
                                 + "WHERE ID_PRODUCTO = ? AND ACTIVO = 1 FOR UPDATE")) {
                             ps.setInt(1, item.getId());
                             try (ResultSet rs = ps.executeQuery()) {
@@ -55,7 +53,6 @@ public class VentaDAO {
                                     return -1;
                                 }
                                 precio = rs.getDouble("PRECIO");
-                                categoria = rs.getString("CATEGORIA");
                                 existencia = rs.getInt("EXISTENCIA");
                             }
                         }

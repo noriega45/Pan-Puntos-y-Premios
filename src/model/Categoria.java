@@ -6,6 +6,7 @@ public class Categoria {
     private String nombre;
     private String descripcion;
     private boolean activo;
+    private String tipo = "EXTRA";
 
     public Categoria() {
         this.activo = true;
@@ -48,5 +49,13 @@ public class Categoria {
 
     public void setActivo(boolean activo) {
         this.activo = activo;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
     }
 }

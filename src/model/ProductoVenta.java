@@ -37,7 +37,7 @@ public class ProductoVenta extends ItemVenta {
 
     @Override
     public int calcularPuntos() {
-        return "SANDWICH".equalsIgnoreCase(producto.getCategoria())
+        return "COMIDA".equals(producto.getTipoCategoria())
                 ? getCantidad() * 2 : 0;
     }
 }

@@ -16,16 +16,6 @@ public class ProductoController {
     public List<Producto> listarProductos() {
         return productoDAO.listar();
     }
-    
-    public Producto buscarProductoPorId(int idProducto) {
-        for (Producto producto : productoDAO.listar()) {
-            if (producto.getIdProducto() == idProducto) {
-                return producto;
-            }
-        }
-        return null;
-    }
-
 
     public boolean actualizarProducto(Producto producto) {
         return productoDAO.actualizar(producto);

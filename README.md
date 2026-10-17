@@ -6,7 +6,7 @@ Aplicación de escritorio Java Swing con persistencia Oracle JDBC.
 
 1. Crea o selecciona el esquema `PANPUNTOS` en Oracle XE/PDB.
 2. En SQL Developer, ejecuta `database/01_esquema.sql` con **Run Script (F5)**.
-3. Ejecuta, en este orden, `database/migraciones/001_clientes_y_premios.sql` y `database/migraciones/002_movimientos_inventario.sql`.
+3. Ejecuta, en este orden, `database/migraciones/001_clientes_y_premios.sql`, `database/migraciones/002_movimientos_inventario.sql` `database/migraciones/003_tipo_categoria.sql` y `database/migraciones/004_textos_legibles.sql`.
 4. Opcionalmente ejecuta `database/02_datos_prueba.sql` para cargar productos, un menú, premios y un cliente de demostración. Los datos se identifican por códigos `DEMO-*`.
 5. Revisa la URL, usuario y clave de Oracle en `src/util/Conexion.java`.
 
@@ -14,7 +14,7 @@ Si el esquema ya existe, no vuelvas a ejecutar `01_esquema.sql`: ejecuta solo la
 
 ## Ejecución
 
-Abre el proyecto Ant en Apache NetBeans y ejecútalo. La clase inicial es `view.FrmInicio`. Para compilar desde Ant, usa el objetivo `jar`.
+Requiere JDK 21 o superior. Abre el proyecto Ant en Apache NetBeans y ejecútalo. La clase inicial es `view.FrmInicio`. Para compilar desde Ant, usa el objetivo `jar`.
 
 ## Flujo principal
 
@@ -29,5 +29,5 @@ El formulario de clientes no solicita NIT. La columna heredada se conserva como 
 
 ## Diagramas
 
-- Modelo de clases: `docs/diagrama_clases.md`
-- Modelo entidad-relación: `docs/diagrama_er.md`
+- Diagramas de clases UML y entidad-relación en PDF: `docs/Diagramas_UML_y_DER.pdf`
+- Versión editable para draw.io: `docs/Diagramas_UML_y_DER.drawio`
